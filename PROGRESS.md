@@ -79,6 +79,7 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
   icons.app_icon() for the window. presentation/selftest.py + `--selftest [report]` in app.py.
 - AUTOBUILD.py adapted (program folder, data files, excludes PySide6 and PIL, self-test, Start-menu shortcut).
 - Pushed: https://github.com/lCRAMl/LayerForge (branch main, tag v1.0.0 on d08d345).
+- Library pushed: QtControlsPyRS branch next, 5122ddb (HaloDialog/HaloMessageBox; 86fd5be before).
 - Build v1.0.0-0-gd08d345: output/LayerForge_v1.0.0-0-gd08d345/ 184 MB (pruned ffmpeg video DLL and
   opengl32sw.dll, 47 MB), self-test of the EXE all OK, start incl. self-test ~1.1 s from the network drive.
 - Build lessons: build in place (moving a fresh build on Z: fails, scanner holds DLLs); stdout reconfigured to
