@@ -101,7 +101,6 @@ class PropertiesPanel(QScrollArea):
         self.swap = CompactButton("Swap pallet")
         self.swap.setToolTip("Exchange pallet width and length")
         self.swap.clicked.connect(self._swap_pallet)
-        grid.addWidget(self.swap, 5, 1)
         # A value that only fits together with the next one (KL = 333 while KB is still
         # 400) waits here instead of being thrown away; see _commit_dimension.
         self.pending = QLabel()
@@ -111,10 +110,9 @@ class PropertiesPanel(QScrollArea):
         self.revert.setToolTip("Discard the values that are not applied yet")
         self.revert.clicked.connect(self._drop_draft)
         self.revert.hide()
-        grid.addWidget(self.pending, 6, 0, 1, 2)
-        grid.addWidget(self.revert, 7, 1)
+        grid.addWidget(self.pending, 5, 0, 1, 2)
+        grid.addWidget(self.revert, 6, 1)
         self._draft: tuple[int, Dimensions] | None = None
-        fit_row = QHBoxLayout()
         self.fit = CompactButton("Fit to pallet")
         self.fit.setToolTip("Suggest round KL and KB so the pattern fits the pallet best.\n"
                             "The arrangement, D and the pallet stay as they are.")
@@ -129,9 +127,15 @@ class PropertiesPanel(QScrollArea):
         self.fit_more.setMenu(self.fit_menu)
         self.fit_more.setEnabled(False)
         self._fit_for: int | None = None        # pattern uid the alternatives belong to
-        fit_row.addWidget(self.fit)
-        fit_row.addWidget(self.fit_more)
-        grid.addLayout(fit_row, 8, 0, 1, 2)
+        # Swap and Fit stacked on the left with equal width, Alternatives beside Fit.
+        actions = QGridLayout()
+        actions.setHorizontalSpacing(8)
+        actions.setVerticalSpacing(4)
+        actions.addWidget(self.swap, 0, 0)
+        actions.addWidget(self.fit, 1, 0)
+        actions.addWidget(self.fit_more, 1, 1)
+        actions.setColumnStretch(2, 1)
+        grid.addLayout(actions, 7, 0, 1, 2)
         column.addWidget(values)
 
         # --- selected package -----------------------------------------------

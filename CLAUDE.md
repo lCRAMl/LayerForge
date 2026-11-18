@@ -9,5 +9,6 @@
 - Never import PySide6. pytest must run with `qt_api = pyqt6`.
 - Domain layer must not import PyQt6, OpenCV, the PDF backend, openpyxl or Jinja2.
 - No log files. Packaging is in scope since 2026-11-18 (user request): `python AUTOBUILD.py`
-  builds the program folder, self-tests it, retargets Start Menu\Programs\LayerForge.lnk and pins it.
+  builds the program folder, self-tests it, retargets Start Menu\Programs\LayerForge.lnk and
+  checks the Start tile (Windows refuses programmatic pinning; the user pins once).
 - Folder renamed by the user to `z:\Code\work\kave\LayerForge` (2026-11-18).

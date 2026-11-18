@@ -5,7 +5,7 @@ Design: `doc/DESIGN.md`. Requirements: `../Claude_Code_Prompt_Layerpattern_Tool.
 
 ## Current state
 
-- Phase: **all four phases done + Fit to pallet** (150 tests green). Waiting for user feedback and a TIA V21 import test. Design approved 2026-11-18 (all D1–D21 as recommended, D20 = set A).
+- Phase: **all four phases done + Fit to pallet + packaging** (152 tests green). Waiting for user feedback and a TIA V21 import test. Design approved 2026-11-18 (all D1–D21 as recommended, D20 = set A).
 - Phase 0 done: library extended (uncommitted in the library repo – the user commits).
 
 ## Next steps
@@ -63,6 +63,17 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 - Pallet-formats.pdf: 2 pages, pure vector (Excel, lines as thin rects), 4 patterns, 28/15/22/12 packages, pattern 4 has an internal hole; drawings not to scale.
 
 ## Log
+
+### 2026-11-18 – Properties buttons, new icon, other programs' builds
+- Properties "Example values": Swap pallet now sits left, directly above Fit to pallet, same width
+  (small grid: Swap / Fit + Alternatives); pending note and Revert moved up to rows 5/6.
+- Icon redrawn: only the layer pattern (3 standing + 2 lying of the same case, 18.67 x 29.5 in a 64 grid,
+  gap 3), filling the icon, transparent background; star, pallet and tile background removed. ICO/PNG
+  regenerated with tools/make_icon.py. Crisp from 24 px, slightly soft at 16 px.
+- Other programs (user request, not committed there): APIImageGenerator, LeechForum (Forum Image Downloader)
+  and PicPromptEditor AUTOBUILD.py now write a stable <App>.lnk into Start Menu/Programs and run the same
+  Start-tile check. Stable ForumImageDownloader.lnk and PicPromptEditor.lnk created by hand pointing at the
+  current EXEs; APIImageGenerator.lnk already existed. TRXing has no shortcut logic (unchanged).
 
 ### 2026-11-18 – Start tile, centred version line
 - User renamed the folder to z:/Code/work/kave/LayerForge; safe.directory added for Z: and %(prefix)/// UNC form
