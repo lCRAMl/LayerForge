@@ -5,10 +5,11 @@
 - Design: `doc/DESIGN.md`.
 - Talk to the user in German (Du). Before building: plan + questions, each with a recommendation ("passt" is a valid answer).
 - Tool code, UI, comments, docs: English. Comments only where they add meaning, no filler.
-- Library QtControlsPyRS (`Z:\Code\python\QtControlsPyRS`): German comments/README; extensions follow its style and get tests + CHANGELOG entry.
+- Library QtControlsPyRS (https://github.com/lCRAMl/QtControlsPyRS; local checkout path in Claude's memory): German comments/README; extensions follow its style and get tests + CHANGELOG entry.
 - Never import PySide6. pytest must run with `qt_api = pyqt6`.
 - Domain layer must not import PyQt6, OpenCV, the PDF backend, openpyxl or Jinja2.
 - No log files. Packaging is in scope since 2026-11-18 (user request): `python AUTOBUILD.py`
   builds the program folder, self-tests it, retargets Start Menu\Programs\LayerForge.lnk and
   checks the Start tile (Windows refuses programmatic pinning; the user pins once).
-- Folder renamed by the user to `z:\Code\work\kave\LayerForge` (2026-11-18).
+- Public repository (GPL-3.0): never commit local paths, drive letters, network addresses or user names.
+  Machine-specific facts belong in Claude's memory, not in the repo.

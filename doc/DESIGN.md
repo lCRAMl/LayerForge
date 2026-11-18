@@ -10,8 +10,8 @@ Open decisions are tracked in `../PROGRESS.md` (section "Decisions").
 
 | Item | Finding | Consequence |
 | --- | --- | --- |
-| Repository | `z:\Code\work\kave` is **not** a git repository. It holds V1–V3 of the earlier gantry/PLC work (old parameter model, not reused). | New tool goes into its own folder, proposed `LayerPatternTool/` (+ optional `git init`). |
-| Custom Qt library | `<CUSTOM_QT_WIDGET_LIBRARY>` = **QtControlsPyRS** at `Z:\Code\python\QtControlsPyRS` (`qt_controls_pyrs` 0.4.0, PyQt6, editable install, own git repo, German docs/comments). | Usable; needs small extensions (section 4). |
+| Repository | The spec folder is **not** a git repository. It holds V1–V3 of the earlier gantry/PLC work (old parameter model, not reused). | New tool goes into its own folder, proposed `LayerPatternTool/` (+ optional `git init`). |
+| Custom Qt library | `<CUSTOM_QT_WIDGET_LIBRARY>` = **QtControlsPyRS** (https://github.com/lCRAMl/QtControlsPyRS, `qt_controls_pyrs` 0.4.0, PyQt6, editable install, own git repo, German docs/comments). | Usable; needs small extensions (section 4). |
 | Existing Qt GUI in repo | None. Only the external library. | App shell is new. |
 | Existing TIA V21 generation | `V3/python/gen_v3.py` writes DB sources by string building; V2 sources were imported successfully. Conventions: ASCII only, **CRLF** (V2, imported OK; V3 uses LF and is not yet compiled), `{ S7_Optimized_Access := 'TRUE' }`, `VERSION : x.y`, `NON_RETAIN`, start values as assignments after `BEGIN`, `//` comment headers, `TYPE "…" … STRUCT … END_STRUCT; END_TYPE`. | Reuse syntax conventions only; new names/fields; Jinja2 templates instead of string building. |
 | Python | 3.13.5 (also 3.10). Library requires ≥ 3.10. | Python 3.13 – no conflict. |
@@ -72,7 +72,7 @@ flush) and only then evaluate it with KL/KB/D (section 7).
 | R3 | False proposals | Kave pages contain label pills and a header bar in the package colour. | Filters (rectangularity, holes from text, size relative to cluster); remaining ones appear as red/yellow proposals that the user simply does not accept. Region recognition is the clean path for busy pages. |
 | R4 | Touching packages without separators | Splitting a solid blob is guesswork. | Split only when the blob is a near-perfect n×m multiple of the dominant package size; always yellow. |
 | R5 | HaloTabWidget | Content slides with blur for 430 ms and blocks clicks meanwhile – tiring in a tool that switches PDF ↔ Editor often. | App subclass with shorter slide (≈ 180 ms) and less blur; no library change. |
-| R6 | Network drive | App and library run from `Z:` (SMB share). | Lazy imports of heavy modules; `__pycache__` on the share works. |
+| R6 | Network drive | App and library run from a mapped network drive (SMB share). | Lazy imports of heavy modules; `__pycache__` on the share works. |
 | R7 | pytest-qt binding | Picks PySide6 by default here. | `qt_api = pyqt6` in `pytest.ini`. |
 
 ---

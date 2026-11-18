@@ -30,7 +30,7 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 
 | # | Topic | Proposal | Status |
 | --- | --- | --- | --- |
-| D1 | Tool location | `z:\Code\work\kave\LayerPatternTool\` + `git init` (local) | OK |
+| D1 | Tool location | own folder `LayerPatternTool/` (now `LayerForge/`) next to the spec + `git init` | OK |
 | D2 | Library extensions | L1 lazy import, L2 HaloCommandBar, L3 StatusBar levels; icons app-local | OK |
 | D3 | Theme | dark default, light switchable in Options | OK |
 | D4 | PDF backend | pypdfium2 (permissive) instead of PyMuPDF (AGPL) | OK |
@@ -57,12 +57,25 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 - Python 3.13.5; PyQt6 6.11; numpy 2.2.6; opencv-python 4.12 (full); openpyxl 3.1.5; Jinja2 3.1.6; pytest 9.1; pytest-qt 4.5; reportlab 5.0; PySide6 6.9 also installed (never import). PyMuPDF / pypdfium2 not installed.
 - pytest-qt picks PySide6 by default here → `qt_api = pyqt6` in pytest.ini.
 - `import qt_controls_pyrs` ≈ 280 ms, ≈ 180 ms of it is `requests` via `imgbb`.
-- Library path resolves to `\\192.168.178.38\fs\Code\python\QtControlsPyRS\src` (editable install, network share).
+- The library is an editable install from a network share (mapped drive).
 - TIA conventions: ASCII, CRLF (V2 imported fine; user confirmed V3 with LF also imports fine in V21), `{ S7_Optimized_Access := 'TRUE' }`, `VERSION`, `NON_RETAIN`, start values after `BEGIN`.
 - Kave_Layerpattern.pdf: 4 pages, 1 raster image each (~960 px wide), 18 patterns, package counts 1,2,4,6,8,2,3,9,6,3,7,10,4,5,9,5,5,6. Dark packages = same size rotated (colour must not be used).
 - Pallet-formats.pdf: 2 pages, pure vector (Excel, lines as thin rects), 4 patterns, 28/15/22/12 packages, pattern 4 has an internal hole; drawings not to scale.
 
 ## Log
+
+### 2026-11-19 – Public README, GPL-3.0, no local paths
+- README.md rewritten for the public repo: what the tool does, requirements, step-by-step setup (clone, venv,
+  QtControlsPyRS from GitHub branch next, requirements.txt, run, tests), AUTOBUILD steps, layout, design rules.
+  No local paths. requirements.txt: local path comment replaced by the GitHub install line.
+- QtControlsPyRS: main was 0.2.0, LayerForge needs 0.4.0 (HaloDialog/HaloCommandBar). User approved:
+  next fast-forwarded into main (5122ddb); README installs `git+https://github.com/lCRAMl/QtControlsPyRS.git`.
+- Verified in a fresh public clone + fresh py3.13 venv on C: (PyQt6 6.12.1, numpy 2.5.5, opencv-headless 5.1,
+  PyInstaller 6.22.3): source self-test OK, 150 passed / 2 skipped (private PDFs), AUTOBUILD + EXE self-test OK.
+  The clone build retargets Start Menu/Programs/LayerForge.lnk -> pointed back to the real build afterwards.
+- User approved: local paths, drive letters and the share IP removed from CLAUDE.md, PROGRESS.md and
+  doc/DESIGN.md (they stay in the git history; no rewrite). Machine-specific facts moved to Claude's memory.
+- LICENSE: GPL-3.0 (gnu.org text), chosen because of PyQt6. README has a License section.
 
 ### 2026-11-18 – Properties buttons, new icon, other programs' builds
 - Properties "Example values": Swap pallet now sits left, directly above Fit to pallet, same width
@@ -76,7 +89,7 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
   current EXEs; APIImageGenerator.lnk already existed. TRXing has no shortcut logic (unchanged).
 
 ### 2026-11-18 – Start tile, centred version line
-- User renamed the folder to z:/Code/work/kave/LayerForge; safe.directory added for Z: and %(prefix)/// UNC form
+- User renamed the folder to LayerForge; git safe.directory entries added for the mapped-drive and the UNC form
   (the earlier attempt never ran: it was chained after the failed mv).
 - The Start shortcut pointed into the old folder. The user's other tiles reference versioned .lnk files that
   Windows creates when the EXE itself is pinned - they go stale with every build.
@@ -110,7 +123,7 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
   `cd ... && rm` does not move the session shell).
 
 ### 2026-11-18 – Request: AUTOBUILD, repo LayerForge, rename, lib-style dialogs (questions sent, nothing changed)
-- Source: Z:/Code/python/APIImageGenerator/AUTOBUILD.py (+ core/build_info.py, build_version.py pattern):
+- Source: AUTOBUILD.py of the user's APIImageGenerator project (+ core/build_info.py, build_version.py pattern):
   PyInstaller --onefile --windowed, version from `git describe --tags --long`, Start-menu shortcut via pywin32.
   PyInstaller 6.22.2 + pywin32 installed. No icon exists for this tool yet.
 - GitHub https://github.com/lCRAMl/LayerForge.git exists and is empty (ls-remote: no refs).
@@ -140,7 +153,7 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
   Real implementation needs integer evaluation (prototype 2.5-3.5 s for patterns without hints).
 
 ### 2026-11-18 – Proposal "Fit to pallet" (nothing implemented yet, user asked to be asked first)
-- TRXing (Z:/Code/python/TRXing) solves the inverse problem (given package -> arrangement); not reusable here.
+- TRXing (another project of the user) solves the inverse problem (given package -> arrangement); not reusable here.
 - Throw-away prototype (scratch only): brute force over KL >= KB on a 10 mm grid, D fixed, pattern must fit the
   pallet, edges flush in the drawing must stay flush, maximise covered area, validity check on the best ones.
   VMF 15 cases (1000 x 1200, D 0) -> 320 x 240, 96 %; pinwheel 28 cases -> 240 x 160, 90 %; 0.3-0.6 s.
