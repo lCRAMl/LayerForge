@@ -64,6 +64,15 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 
 ## Log
 
+### 2026-11-18 – Start tile, centred version line
+- User renamed the folder to z:/Code/work/kave/LayerForge; safe.directory added for Z: and %(prefix)/// UNC form
+  (the earlier attempt never ran: it was chained after the failed mv).
+- The Start shortcut pointed into the old folder. The user's other tiles reference versioned .lnk files that
+  Windows creates when the EXE itself is pinned - they go stale with every build.
+- AUTOBUILD: stable Start Menu/Programs/LayerForge.lnk retargeted on every build; pin_to_start() uses the shell
+  verb "pintostartscreen" once and verifies via Export-StartLayout, else prints the manual way.
+- Start page: version line centred (it was right-aligned and looked shifted by the Halo glow margin).
+
 ### 2026-11-18 – LayerForge: rename, Halo dialogs, AUTOBUILD (152 tests green)
 - Decisions G1-G6 approved as recommended (repo by Claude, rename as proposed, program folder, icon, v1.0.0, Halo dialogs).
 - Library: new `halodialog.py` (HaloDialog: frameless, own title bar, drag, Esc/Enter; HaloMessageBox:

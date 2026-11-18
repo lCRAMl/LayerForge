@@ -59,7 +59,8 @@ class StartPage(QWidget):
         self.recent_box.setSpacing(2)
         column.addLayout(self.recent_box)
         column.addStretch(3)
-        column.addWidget(_dimmed(QLabel(f"Version {APP_VERSION}" + (f" · built {BUILD_TIME}" if BUILD_TIME else ""))), 0, Qt.AlignmentFlag.AlignRight)
+        column.addWidget(_dimmed(QLabel(f"Version {APP_VERSION}" + (f" · built {BUILD_TIME}" if BUILD_TIME else ""))),
+                         0, Qt.AlignmentFlag.AlignHCenter)
         outer.addLayout(column)
         outer.addStretch(1)
         self.refresh()

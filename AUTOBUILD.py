@@ -3,7 +3,8 @@
 # Builds LayerForge with PyInstaller as a program folder (decision G3: starts in about
 # a second; a single-file EXE would unpack ~150 MB on every start). Writes
 # build_version.py (version from git), bundles the help, the TIA templates and the icon,
-# runs the built program's self-test and creates a Start-menu shortcut.
+# runs the built program's self-test, points the Start-menu shortcut "LayerForge" at the
+# new build and pins it as a Start tile if it is not pinned yet.
 # Adapted from APIImageGenerator/AUTOBUILD.py.
 #
 # Usage:  python AUTOBUILD.py
@@ -13,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -122,7 +124,13 @@ def get_start_menu_programs_dir() -> str:
     return os.path.join(appdata, "Microsoft", "Windows", "Start Menu", "Programs")
 
 
-def create_shortcut(app_name: str, target_exe: Path, working_dir: Path) -> None:
+def create_shortcut(app_name: str, target_exe: Path, working_dir: Path) -> Path | None:
+    """Create or retarget Start Menu\\Programs\\<app_name>.lnk.
+
+    The name has no version on purpose: a Start tile pinned to this shortcut keeps
+    working after every build and always starts the newest one. (Pinning the EXE itself
+    makes Windows create a versioned shortcut that goes stale with the next build.)
+    """
     try:
         import pythoncom
         from win32com.shell import shell
@@ -146,9 +154,50 @@ def create_shortcut(app_name: str, target_exe: Path, working_dir: Path) -> None:
         link.SetDescription(app_name)
         link.SetIconLocation(target, 0)
         link.QueryInterface(pythoncom.IID_IPersistFile).Save(shortcut_path, 0)
-        print(f"🔗 Start-menu shortcut created: {shortcut_path}")
+        print(f"🔗 Start-menu shortcut points to the new build: {shortcut_path}")
+        return Path(shortcut_path)
     except Exception as exc:
         print(f"⚠ Shortcut creation failed: {exc}")
+        return None
+
+
+def start_tile_present(shortcut: Path) -> bool:
+    """True if the Start menu has a tile for this shortcut (read with Export-StartLayout)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        layout = Path(tmp) / "layout.xml"
+        subprocess.run(["powershell", "-NoProfile", "-Command",
+                        f"Export-StartLayout -Path '{layout}'"], capture_output=True, timeout=60)
+        if not layout.exists():
+            return False
+        text = layout.read_text(encoding="utf-8", errors="ignore").lower()
+    return f"\\{shortcut.name.lower()}" in text
+
+
+def pin_to_start(shortcut: Path) -> None:
+    """Pin the shortcut as a Windows 10 Start tile, once.
+
+    Windows has no official API for a desktop program to pin itself; the shell verb
+    "pintostartscreen" does it on Windows 10. The result is checked, and if the verb is
+    ignored (other Windows versions, policies) the manual way is printed instead.
+    """
+    if start_tile_present(shortcut):
+        print("📌 Start tile already present - it now starts the new build")
+        return
+    try:
+        import win32com.client
+
+        shell = win32com.client.Dispatch("Shell.Application")
+        item = shell.Namespace(str(shortcut.parent)).ParseName(shortcut.name)
+        item.InvokeVerb("pintostartscreen")
+    except Exception as exc:
+        print(f"⚠ Pinning failed: {exc}")
+    for _ in range(10):                   # the Start menu updates its layout asynchronously
+        if start_tile_present(shortcut):
+            print("📌 Pinned as a Start tile")
+            return
+        time.sleep(0.5)
+    print(f"⚠ Could not pin automatically. Once by hand: Start > All apps > {shortcut.stem} >"
+          " right-click > Pin to Start. Later builds keep that tile up to date.")
 
 
 # =========================
@@ -232,7 +281,9 @@ def main() -> int:
     ok = selftest(exe)
     print("🧪 Self-test", "passed" if ok else "FAILED")
     if ok:
-        create_shortcut(safe_app, exe, target)
+        shortcut = create_shortcut(safe_app, exe, target)
+        if shortcut is not None:
+            pin_to_start(shortcut)
     clean()
     print(f"\n{'✅ DONE' if ok else '❌ BUILD UNUSABLE'}: {exe}")
     return 0 if ok else 1
