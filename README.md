@@ -34,7 +34,7 @@ No log files are written.
 python AUTOBUILD.py
 ```
 
-Builds a program folder `output/LayerForge_<version>/` with `LayerForge.exe` (and `_internal/`),
+Builds a program folder `output/LayerForge_<version>/` with `LayerForge_<version>.exe` (and `_internal/`),
 runs the built program's self-test (`LayerForge.exe --selftest <report>`: PDFium, OpenCV, templates,
 Excel, help, main window) and creates a Start-menu shortcut. The version comes from
 `git describe --tags --long` (tags `v1.0.0`, ...) and is written to `build_version.py` (not committed);

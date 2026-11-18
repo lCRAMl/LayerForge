@@ -77,7 +77,13 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
   own dialogs subclass HaloDialog (content on self.body, _fit_to_content(dialog)).
 - Icon: layerforge/resources/icons/layerforge.svg -> tools/make_icon.py -> .ico (9 sizes) + 256 png;
   icons.app_icon() for the window. presentation/selftest.py + `--selftest [report]` in app.py.
-- AUTOBUILD.py adapted (program folder, data files, excludes PySide6, self-test, Start-menu shortcut).
+- AUTOBUILD.py adapted (program folder, data files, excludes PySide6 and PIL, self-test, Start-menu shortcut).
+- Pushed: https://github.com/lCRAMl/LayerForge (branch main, tag v1.0.0 on d08d345).
+- Build v1.0.0-0-gd08d345: output/LayerForge_v1.0.0-0-gd08d345/ 184 MB (pruned ffmpeg video DLL and
+  opengl32sw.dll, 47 MB), self-test of the EXE all OK, start incl. self-test ~1.1 s from the network drive.
+- Build lessons: build in place (moving a fresh build on Z: fails, scanner holds DLLs); stdout reconfigured to
+  UTF-8 for the emoji lines; never leave a shell inside output/ (Windows cannot delete a cwd; a failed
+  `cd ... && rm` does not move the session shell).
 
 ### 2026-11-18 – Request: AUTOBUILD, repo LayerForge, rename, lib-style dialogs (questions sent, nothing changed)
 - Source: Z:/Code/python/APIImageGenerator/AUTOBUILD.py (+ core/build_info.py, build_version.py pattern):

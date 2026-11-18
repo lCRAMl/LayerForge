@@ -7,7 +7,7 @@
 # Adapted from APIImageGenerator/AUTOBUILD.py.
 #
 # Usage:  python AUTOBUILD.py
-# Result: output/LayerForge_<version>/LayerForge.exe (+ _internal/)
+# Result: output/LayerForge_<version>/LayerForge_<version>.exe (+ _internal/)
 
 import os
 import shutil
@@ -18,6 +18,11 @@ from datetime import datetime
 from pathlib import Path
 
 from layerforge import APP_NAME
+
+# The emoji status lines must not crash a build whose output goes to a file or a
+# console with a legacy code page (cp1252).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # =========================
 # CONFIG
@@ -35,7 +40,14 @@ DATA_PATHS = {
 # Never bundled: a second Qt binding (installed on this machine, must not be mixed with
 # PyQt6) and test-only or unused packages.
 EXCLUDES = ["PySide6", "shiboken6", "tkinter", "pytest", "pytestqt", "reportlab", "IPython",
-            "matplotlib"]
+            "matplotlib", "PIL"]          # PIL: openpyxl only needs it for embedded pictures
+
+# Large files the hooks bundle but LayerForge never loads; removed after the build and
+# before the self-test, so the test proves the program works without them (~47 MB).
+PRUNE = [
+    "_internal/cv2/opencv_videoio_ffmpeg*.dll",    # video input/output
+    "_internal/PyQt6/Qt6/bin/opengl32sw.dll",      # software OpenGL; the editor uses none
+]
 
 ENTRY_SCRIPT = "run.py"
 VERSION_FILE = "build_version.py"
@@ -143,15 +155,19 @@ def create_shortcut(app_name: str, target_exe: Path, working_dir: Path) -> None:
 # PYINSTALLER BUILD
 # =========================
 
-def build_pyinstaller(app: str) -> Path:
-    """Build into BUILD_DIR/dist/<app>/ and return that folder."""
+def build_pyinstaller(name: str) -> Path:
+    """Build straight into OUTPUT_DIR/<name>/ and return that folder.
+
+    Built in place on purpose: moving a fresh build on the network drive fails while
+    the virus scanner still holds the new DLLs open.
+    """
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--clean",
         "--windowed",
-        f"--name={app}",
-        f"--distpath={BUILD_DIR / 'dist'}",
+        f"--name={name}",
+        f"--distpath={OUTPUT_DIR}",
         f"--workpath={BUILD_DIR / 'work'}",
         f"--specpath={BUILD_DIR}",
         f"--icon={Path(ICON_PATH).resolve()}",
@@ -165,7 +181,16 @@ def build_pyinstaller(app: str) -> Path:
     print("\n🚀 Running build:\n")
     print(" ".join(cmd), "\n")
     subprocess.run(cmd, check=True)
-    return BUILD_DIR / "dist" / app
+    return OUTPUT_DIR / name
+
+
+def prune(folder: Path) -> None:
+    freed = 0
+    for pattern in PRUNE:
+        for path in folder.glob(pattern):
+            freed += path.stat().st_size
+            path.unlink()
+    print(f"🧹 Pruned {freed / 1048576:.0f} MB of unused files")
 
 
 def selftest(exe: Path) -> bool:
@@ -199,14 +224,10 @@ def main() -> int:
 
     safe_app = APP_NAME.replace(" ", "")
     safe_version = version.replace("+", "_").replace(" ", "_")
-    built = build_pyinstaller(safe_app)
-
-    target = OUTPUT_DIR / f"{safe_app}_{safe_version}"
-    if target.exists():
-        shutil.rmtree(target)
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    shutil.move(str(built), str(target))
-    exe = (target / f"{safe_app}.exe").resolve()
+    name = f"{safe_app}_{safe_version}"
+    target = build_pyinstaller(name)
+    prune(target)
+    exe = (target / f"{name}.exe").resolve()
 
     ok = selftest(exe)
     print("🧪 Self-test", "passed" if ok else "FAILED")
