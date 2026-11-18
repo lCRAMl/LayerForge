@@ -53,6 +53,8 @@ def to_dict(project: Project) -> dict:
                 "pdf": p.source.pdf_id, "page": p.source.page, "rect": list(p.source.rect)},
             "packages": [{"orientation": k.orientation, "x": _form(k.x), "y": _form(k.y)}
                          for k in p.packages],
+            # Optional (schema 1 readers ignore it): KL/KB proportions from the drawing.
+            "drawingHints": [[str(h.l), str(h.b)] for h in p.hints],
         } for p in project.patterns],
     }
 
@@ -129,9 +131,14 @@ def from_dict(data: dict) -> Project:
                                tuple(float(c) for c in rect))
         origin = raw.get("origin", Origin.MANUAL)
         verified = raw.get("verified")
+        hints = []
+        for hint in raw.get("drawingHints", []):
+            if not (isinstance(hint, list) and len(hint) == 2):
+                raise ProjectFileError(f"{where}: invalid drawing hint.")
+            hints.append(_parse_form(hint + ["0"], f"{where}, drawing hint"))
         patterns.append(Pattern(uid, _int(raw, "patternId", where), tuple(packages), dims,
                                 verified if isinstance(verified, str) else None, source,
-                                origin if origin in Origin.ALL else Origin.MANUAL))
+                                origin if origin in Origin.ALL else Origin.MANUAL, tuple(hints)))
     return Project(str(data.get("name", "Untitled")), tuple(patterns), pdfs, len(patterns) + 1)
 
 

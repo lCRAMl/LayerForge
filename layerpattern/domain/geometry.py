@@ -169,13 +169,19 @@ def holds_for_all(form: LinearForm) -> bool:
     return form.l + form.b >= 0 and form.l >= 0 and form.d >= 0
 
 
-def _primitive(form: LinearForm) -> LinearForm:
-    """Scale to coprime integer coefficients so equivalent conditions compare equal."""
+def primitive(form: LinearForm, positive: bool = False) -> LinearForm:
+    """Scale to coprime integer coefficients so equivalent relations compare equal.
+
+    `positive` also fixes the sign (first non-zero coefficient > 0) - for equations,
+    where f = 0 and -f = 0 say the same; not for inequalities.
+    """
     from math import gcd, lcm
     coeffs = form.coefficients()
     scale = lcm(*(c.denominator for c in coeffs))
     ints = [int(c * scale) for c in coeffs]
     common = gcd(*ints) or 1
+    if positive and next((i for i in ints if i), 0) < 0:
+        common = -common
     return LinearForm.of(*(Fraction(i, common) for i in ints))
 
 
@@ -185,10 +191,10 @@ class Condition:
 
     form: LinearForm
 
-    def text(self) -> str:
+    def text(self, times: str = "·", ge: str = "≥") -> str:
         positive = LinearForm.of(*(max(c, 0) for c in self.form.coefficients()))
         negative = LinearForm.of(*(max(-c, 0) for c in self.form.coefficients()))
-        return f"{positive.text('·')} ≥ {negative.text('·')}"
+        return f"{positive.text(times)} {ge} {negative.text(times)}"
 
 
 def validity_conditions(packages, dims: Dimensions) -> list[Condition]:
@@ -206,7 +212,7 @@ def validity_conditions(packages, dims: Dimensions) -> list[Condition]:
     def need(form: LinearForm) -> None:
         if form.is_zero() or holds_for_all(form):
             return
-        key = _primitive(form)
+        key = primitive(form)
         if key not in seen:
             seen.add(key)
             out.append(Condition(key))

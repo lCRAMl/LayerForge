@@ -7,7 +7,7 @@ from pathlib import Path
 from layerpattern import APP_NAME
 from layerpattern.domain.export_model import ExportSnapshot
 
-PATTERN_HEADERS = ["PatternId", "FirstPackageIndex", "PackageCount"]
+PATTERN_HEADERS = ["PatternId", "FirstPackageIndex", "PackageCount", "Width", "Height", "ValidWhile"]
 PACKAGE_HEADERS = ["GlobalPackageIndex", "PatternId", "Sequence", "BaseOrientation",
                    "KxL", "KxB", "KxD", "KyL", "KyB", "KyD", "XFormula", "YFormula"]
 COEFF_FORMAT = "0.0###"          # 1 -> 1.0, -0.25 -> -0.25, 0.0625 -> 0.0625
@@ -29,12 +29,14 @@ def write(snapshot: ExportSnapshot, path: str | Path) -> None:
     ws.title = "Patterns"
     ws.append(PATTERN_HEADERS)
     for row in snapshot.patterns:
-        ws.append([row.pattern_id, row.first_index, row.count])
-    table = Table(displayName="Patterns", ref=f"A1:C{len(snapshot.patterns) + 1}")
+        # ValidWhile: the KL/KB/D range in which the coefficients of this pattern hold.
+        ws.append([row.pattern_id, row.first_index, row.count, row.width.text(), row.height.text(),
+                   "; ".join(row.valid_while) or "always"])
+    table = Table(displayName="Patterns", ref=f"A1:F{len(snapshot.patterns) + 1}")
     table.tableStyleInfo = style
     ws.add_table(table)
     ws.freeze_panes = "A2"
-    for column, width in zip("ABC", (12, 19, 15)):
+    for column, width in zip("ABCDEF", (12, 19, 15, 24, 24, 40)):
         ws.column_dimensions[column].width = width
 
     ws = wb.create_sheet("Packages")

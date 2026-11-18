@@ -14,6 +14,8 @@ from statistics import median
 import cv2
 import numpy as np
 
+from layerpattern.domain.cancel import Cancelled
+
 
 TEXT_BLOCK_HOLES = 25     # glyph islands that mark a block of running text
 TEXT_LABEL_HOLES = 10     # ... and a lone captioned rectangle (heading, note)
@@ -80,8 +82,6 @@ class Detection:
                 float(matrix[1, 0] * x + matrix[1, 1] * y + matrix[1, 2]))
 
 
-class Cancelled(Exception):
-    pass
 
 
 def _check(cancel) -> None:

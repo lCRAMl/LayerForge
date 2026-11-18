@@ -20,7 +20,7 @@ import heapq
 from dataclasses import dataclass
 from statistics import median
 
-from .geometry import normalized, units
+from .geometry import normalized, primitive, units
 from .linear import D, KB, KL, LinearForm
 from .model import Dimensions, Package
 from .sequence import auto_order
@@ -50,6 +50,7 @@ class Reconstruction:
     uncertain: tuple[int, ...]           # package indexes with weak evidence (yellow)
     estimated: tuple[int, ...]           # positions without any drawing evidence (red)
     messages: tuple[str, ...]
+    hints: tuple[LinearForm, ...] = ()   # drawn intent, e.g. 3*KL - 4*KB = 0 (see drawing_hints)
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,7 +194,9 @@ def reconstruct(drawn: list[DrawnRect], dims: Dimensions,
     if estimated:
         messages.append("Some positions could not be derived from the drawing and were estimated.")
 
-    packages = normalized([Package(x, y, o) for x, y, o in zip(xs, ys, orientation)], dims)
+    placed = [Package(x, y, o) for x, y, o in zip(xs, ys, orientation)]
+    hints = drawing_hints(drawn, placed, tol)
+    packages = normalized(placed, dims)
     ordered = auto_order(packages, dims)
     # Map every ordered package back to its input rectangle (identity, not equality:
     # two rectangles can never yield the same package without overlapping).
@@ -207,8 +210,34 @@ def reconstruct(drawn: list[DrawnRect], dims: Dimensions,
     return Reconstruction(
         ordered, tuple(source_index),
         tuple(sorted(back[k] for k in uncertain)), tuple(sorted(back[k] for k in estimated)),
-        tuple(messages),
+        tuple(messages), hints,
     )
+
+
+def drawing_hints(drawn: list[DrawnRect], packages: list[Package], tol: float) -> tuple[LinearForm, ...]:
+    """What the drawing says about the package proportions.
+
+    Two edges that are flush in the drawing but were placed through different
+    relations stay apart for most KL/KB - unless the case was designed so that they
+    meet (e.g. four standing cases as wide as three lying ones: 3*KL = 4*KB).
+    Each such pair yields one equation in KL and KB. The D part is dropped: a
+    schematic drawing does not show where the safety gaps go.
+    """
+    found: set[LinearForm] = set()
+    sides = (
+        (lambda r: r[0], Package.left), (lambda r: r[2], Package.right),
+        (lambda r: r[1], Package.bottom), (lambda r: r[3], Package.top),
+    )
+    for drawn_edge, symbolic_edge in sides:
+        for i in range(len(packages)):
+            for j in range(i + 1, len(packages)):
+                if abs(drawn_edge(drawn[i]) - drawn_edge(drawn[j])) > tol:
+                    continue
+                diff = symbolic_edge(packages[i]) - symbolic_edge(packages[j])
+                ratio = LinearForm(diff.l, diff.b)
+                if not ratio.is_zero():
+                    found.add(primitive(ratio, positive=True))
+    return tuple(sorted(found, key=LinearForm.complexity))
 
 
 def flip_y(rects: list[DrawnRect], page_height: float) -> list[DrawnRect]:

@@ -14,6 +14,7 @@ ORGANIZATION = "LayerPattern"
 APPLICATION = "LayerPatternTool"
 MAX_RECENT = 5
 SENSITIVITIES = ("Low", "Normal", "High")
+FIT_STEPS = (5, 10, 25, 50)
 
 
 class AppSettings:
@@ -106,6 +107,24 @@ class AppSettings:
     @max_packages.setter
     def max_packages(self, value: int) -> None:
         self._set("validation/max_packages", int(value))
+
+    @property
+    def fit_step(self) -> int:
+        value = self._get("fit/step", 10, int)
+        return value if value in FIT_STEPS else 10
+
+    @fit_step.setter
+    def fit_step(self, value: int) -> None:
+        self._set("fit/step", int(value))
+
+    @property
+    def fit_band(self) -> int:
+        """How much worse (mm) a rounder size may fit than the best one."""
+        return max(0, self._get("fit/band", 25, int))
+
+    @fit_band.setter
+    def fit_band(self, value: int) -> None:
+        self._set("fit/band", int(value))
 
     @property
     def tia_names(self) -> TiaNames:

@@ -6,7 +6,8 @@ from dataclasses import replace
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
-    QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+    QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QScrollArea, QToolButton,
+    QVBoxLayout, QWidget
 )
 from qt_controls_pyrs import (
     CompactButton, CompactCheckBox, CompactGroupBox, CompactIntField, CompactRadioButton,
@@ -15,6 +16,9 @@ from qt_controls_pyrs import (
 
 from layerpattern.domain import operations as ops
 from layerpattern.domain.export_model import is_verified
+from layerpattern.domain.fitting import applicable_hints, fit_to_pallet
+from layerpattern.domain.geometry import Condition
+from layerpattern.domain.linear import LinearForm
 from layerpattern.domain.model import Dimensions
 from layerpattern.domain.rational import real_literal
 from layerpattern.presentation.editor.view import fmt_mm
@@ -110,6 +114,24 @@ class PropertiesPanel(QScrollArea):
         grid.addWidget(self.pending, 6, 0, 1, 2)
         grid.addWidget(self.revert, 7, 1)
         self._draft: tuple[int, Dimensions] | None = None
+        fit_row = QHBoxLayout()
+        self.fit = CompactButton("Fit to pallet")
+        self.fit.setToolTip("Suggest round KL and KB so the pattern fits the pallet best.\n"
+                            "The arrangement, D and the pallet stay as they are.")
+        self.fit.clicked.connect(self.fit_to_pallet)
+        self.fit_more = QToolButton()
+        self.fit_more.setText("Alternatives")
+        self.fit_more.setToolTip("The next best suggestions of the last Fit to pallet")
+        self.fit_more.setAutoRaise(True)
+        self.fit_more.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.fit_more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.fit_menu = QMenu(self)
+        self.fit_more.setMenu(self.fit_menu)
+        self.fit_more.setEnabled(False)
+        self._fit_for: int | None = None        # pattern uid the alternatives belong to
+        fit_row.addWidget(self.fit)
+        fit_row.addWidget(self.fit_more)
+        grid.addLayout(fit_row, 8, 0, 1, 2)
         column.addWidget(values)
 
         # --- selected package -----------------------------------------------
@@ -161,8 +183,12 @@ class PropertiesPanel(QScrollArea):
     def refresh(self) -> None:
         pattern = self.session.current_pattern()
         enabled = pattern is not None
-        for widget in (self.change_id, self.verify, self.swap, *self.fields.values()):
+        for widget in (self.change_id, self.verify, self.swap, self.fit, *self.fields.values()):
             widget.setEnabled(enabled)
+        if pattern is None or pattern.uid != self._fit_for:
+            self.fit_menu.clear()
+            self.fit_more.setEnabled(False)
+            self._fit_for = None
         if pattern is None:
             self.title.setText("No pattern")
             self.state.setText("")
@@ -189,6 +215,10 @@ class PropertiesPanel(QScrollArea):
             if report.conditions:
                 lines.append("Coefficients valid while: "
                              + "; ".join(c.text() for c in report.conditions))
+        ratios = applicable_hints(pattern.packages, pattern.hints)
+        if ratios:
+            lines.append("Drawing proportions: " + "; ".join(
+                Condition(LinearForm.of(a, b)).text(ge="=") for a, b in ratios))
         lines.append(f"{len(pattern.packages)} packages")
         self.issues.setText("<br>".join(lines))
         if self._draft is not None and self._draft[0] != pattern.uid:
@@ -270,6 +300,39 @@ class PropertiesPanel(QScrollArea):
                                  + " ".join(self._draft[1].problems()) + "</span>")
         self.pending.setVisible(pending)
         self.revert.setVisible(pending)
+
+    def fit_to_pallet(self) -> None:
+        """Suggest KL/KB (rule in domain/fitting.py) and apply the best as one undo step."""
+        pattern = self.session.current_pattern()
+        if pattern is None or not pattern.packages:
+            return
+        base = self._draft[1] if self._draft is not None else pattern.dims
+        settings = self.session.settings
+        results = fit_to_pallet(pattern.packages, pattern.hints, base.pallet_x, base.pallet_y,
+                                base.d, settings.fit_step, settings.fit_band)
+        if not results:
+            self.session.notify("No KL/KB found that keeps this pattern valid on the pallet.", "warning")
+            return
+        self.fit_menu.clear()
+        for result in results:
+            action = self.fit_menu.addAction(result.summary())
+            action.triggered.connect(lambda _c=False, r=result, b=base: self._apply_fit(pattern.uid, b, r))
+        self.fit_more.setEnabled(len(results) > 1)
+        self._fit_for = pattern.uid
+        self._apply_fit(pattern.uid, base, results[0])
+
+    def _apply_fit(self, uid: int, base: Dimensions, result) -> None:
+        self._draft = None
+        self._show_draft_note()
+        dims = replace(base, kl=result.kl, kb=result.kb)
+        self.session.execute(f"Fit to pallet {result.kl} x {result.kb}",
+                             lambda p: ops.set_dimensions(p, uid, dims))
+        message = "Fit to pallet: " + result.summary() + "."
+        if not result.drawing_kept:
+            self.session.notify(message + " The proportions of the drawing could not be kept "
+                                "on this pallet.", "warning")
+        else:
+            self.session.notify(message)
 
     def _swap_pallet(self) -> None:
         pattern = self.session.current_pattern()

@@ -106,6 +106,9 @@ class Pattern:
     verified: str | None = None              # fingerprint of the exported data when verified
     source: SourceRef | None = None
     origin: str = Origin.MANUAL
+    # Proportions the source drawing implies (KL/KB only, each "form = 0"). Project-only:
+    # used by Fit to pallet, never exported, not part of the verification fingerprint.
+    hints: tuple[LinearForm, ...] = ()
 
     def with_packages(self, packages) -> Pattern:
         """New geometry or sequence. Changes exported data, so verification is dropped."""

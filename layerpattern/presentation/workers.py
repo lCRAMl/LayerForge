@@ -41,7 +41,7 @@ class _Task(QRunnable):
         self.fn, self.generation, self.token, self.signals = fn, generation, token, signals
 
     def run(self) -> None:
-        from layerpattern.infrastructure.recognition.detect import Cancelled
+        from layerpattern.domain.cancel import Cancelled
 
         gen = self.generation
         try:

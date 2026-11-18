@@ -93,8 +93,11 @@ def test_excel_structure_and_values(tmp_path):
     assert wb.sheetnames == ["Patterns", "Packages"]
     patterns, packages = wb["Patterns"], wb["Packages"]
     assert [c.value for c in patterns[1]] == excel_export.PATTERN_HEADERS
-    assert [[c.value for c in row] for row in patterns.iter_rows(min_row=2)] == \
-        [[1, 1, 1], [3, 2, 3], [7, 5, 2]]
+    assert [[c.value for c in row] for row in patterns.iter_rows(min_row=2)] == [
+        [1, 1, 1, "KL", "KB", "always"],
+        [3, 2, 3, "KL + KB + D", "2*KB + D", "2*KB + D >= KL"],      # EU13
+        [7, 5, 2, "1.5*KL", "2*KB", "always"],                      # brick bond
+    ]
     assert patterns.freeze_panes == "A2" and packages.freeze_panes == "A2"
     assert "Patterns" in patterns.tables and "Packages" in packages.tables
     # Package 4 = third package of EU13: standing, X = 0.5*KL + 0.5*D, Y = -0.5*KL + KB + 0.5*D
@@ -211,3 +214,17 @@ def test_export_needs_a_format_and_a_folder(tmp_path):
 def test_safe_base_name():
     assert export_service.safe_base_name("Kave EU / Linie 2") == "Kave_EU_Linie_2"
     assert export_service.safe_base_name("äöü") == "LayerPatterns"
+
+
+def test_drawing_hints_survive_save_and_load(tmp_path):
+    from layerpattern.domain.linear import LinearForm
+
+    project, uid = ops.add_pattern(Project(name="h"), grid(2, 1), hints=(LinearForm.of(3, -4),))
+    path = tmp_path / "h.layerpattern.json"
+    project_store.save(project, path)
+    loaded = project_store.load(path)
+    assert loaded.pattern(uid).hints == (LinearForm.of(3, -4),)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["patterns"][0]["drawingHints"] == [["3", "-4"]]
+    del data["patterns"][0]["drawingHints"]                    # files without hints still load
+    assert project_store.from_dict(data).patterns[0].hints == ()

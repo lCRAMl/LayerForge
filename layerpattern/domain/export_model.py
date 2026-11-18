@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from . import rational
-from .geometry import relative_centers
+from .geometry import extent, relative_centers, validity_conditions
 from .linear import LinearForm
 from .model import MAX_PATTERN_ID, Pattern, Project
 
@@ -68,6 +68,10 @@ class PatternRow:
     pattern_id: int
     first_index: int
     count: int
+    # Documentation for the PLC side (Excel only, not in the DB):
+    width: LinearForm = LinearForm()          # outline along X, e.g. 3*KL + 2*D
+    height: LinearForm = LinearForm()
+    valid_while: tuple[str, ...] = ()         # e.g. "3*KL >= 4*KB + D"
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,5 +122,8 @@ def build_snapshot(project: Project, names: TiaNames, generated_at: datetime) ->
                 rational.check(coeff)
             packages.append(PackageRow(len(packages) + 1, pattern.pattern_id, sequence,
                                        orientation, x, y))
-        patterns.append(PatternRow(pattern.pattern_id, first, len(pattern.packages)))
+        box = extent(pattern.packages, pattern.dims)
+        conditions = tuple(c.text("*", ">=") for c in validity_conditions(pattern.packages, pattern.dims))
+        patterns.append(PatternRow(pattern.pattern_id, first, len(pattern.packages),
+                                   box.width(), box.height(), conditions))
     return ExportSnapshot(project.name, generated_at, names, tuple(patterns), tuple(packages))

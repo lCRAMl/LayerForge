@@ -358,3 +358,11 @@ library work comes first because the shell depends on it.
 - **Export** runs in the TaskRunner from a snapshot taken when the dialog is confirmed.
 - **Performance** (64 packages, offscreen): drag move + repaint about 11 ms, release about 53 ms;
   window start about 450 ms; heavy libraries are loaded on first use only.
+- **Fit to pallet** (`domain/fitting.py`, agreed rule F1): drawing hints (KL/KB part of edges flush in the
+  drawing, stored per pattern as `hints`, JSON `drawingHints`, not exported) must hold within one grid step;
+  KL >= KB on the grid (Options, 10 mm), pattern valid; fit = 2 x overhang + unused edge; within the tolerance
+  (Options, 25 mm) the roundest size wins (x100 > x50 > x10), then less overhang, then more area. Integer
+  evaluation in 1/16 mm: 4-15 ms per pattern, so it runs on the GUI thread. Unreachable hints -> fallback
+  without them, reported.
+- **Excel Patterns sheet** got Width, Height (outline formulas) and ValidWhile (validity conditions), F7.
+- **Example values** form a draft when only the pair is inconsistent (KL < KB); applied as one step once valid.

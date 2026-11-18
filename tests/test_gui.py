@@ -374,7 +374,8 @@ def test_help_opens_on_f1_with_context(window, qtbot):
     load(window, qtbot, (grid(1, 1), 1))
     window.act_help.trigger()
     assert window.tabs.currentWidget() is window.help
-    assert "Editor controls" in window.help.browser.toPlainText()
+    text = window.help.browser.toPlainText()
+    assert "Fit to pallet" in text and "Where" in text and "Requires" in text
 
 
 
@@ -406,3 +407,56 @@ def test_dialogs_take_no_empty_room(window, qtbot):
     # The fixed size is applied one event cycle after show().
     qtbot.waitUntil(lambda: d.height() <= d.layout().sizeHint().height() + 2, timeout=2000)
     d.reject()
+
+
+def test_fit_to_pallet_in_the_editor(window, qtbot):
+    from test_fitting import HINT_3KL_4KB, vmf15
+
+    project, uid = ops.add_pattern(Project(name="VMF"), vmf15(), dims=Dimensions(600, 400, 0, 1000, 1200),
+                                   hints=(HINT_3KL_4KB,))
+    window._start_project(project, None, "x")
+    qtbot.wait(300)
+    steps = window.session.undo._index
+    window.properties.fit.click()
+    dims = window.session.current_pattern().dims
+    assert (dims.kl, dims.kb, dims.d, dims.pallet_x, dims.pallet_y) == (320, 240, 0, 1000, 1200)
+    assert window.session.undo._index == steps + 1
+    assert "Drawing proportions" in window.properties.issues.text()
+    assert not window.properties.fit_more.isEnabled()        # only one size keeps this drawing
+
+    # A plain 3 x 2 grid with D = 20 has several good sizes: they are offered as alternatives,
+    # and choosing one is another undo step.
+    project, uid = ops.add_pattern(Project(name="EU"), grid(3, 2), dims=Dimensions(600, 400, 20, 1200, 800))
+    window._start_project(project, None, "x")
+    qtbot.wait(300)
+    window.properties.fit.click()
+    first = window.session.current_pattern().dims.kl
+    actions = window.properties.fit_menu.actions()
+    assert window.properties.fit_more.isEnabled() and len(actions) >= 2
+    actions[1].trigger()
+    assert window.session.current_pattern().dims.kl != first or \
+        window.session.current_pattern().dims.kb != first
+    window.session.undo_step()
+    assert window.session.current_pattern().dims.kl == first
+
+
+def test_fit_to_pallet_for_a_proposal(window, qtbot, tmp_path):
+    from pdf_factory import vector_pdf
+
+    # VMF-like drawing: four standing over three lying, right edges flush.
+    cells = [(60 + c * 40, 100 + r * 52, 100 + c * 40, 152 + r * 52) for r in range(3) for c in range(4)]
+    cells += [(60 + c * (160 / 3), 256, 60 + (c + 1) * (160 / 3), 296) for c in range(3)]
+    pdf = vector_pdf(tmp_path / "vmf.pdf", [(x0, y0, x1 - x0, y1 - y0) for x0, y0, x1, y1 in cells],
+                     filled=False)
+    window.new_project()
+    ws = _import(window, qtbot, pdf)
+    ws.recognize_pages()
+    qtbot.waitUntil(lambda: len(ws.entries) == 1 and ws.act_recognize.isEnabled(), timeout=10000)
+    ws.select_entry(ws.entries[0].key)
+    for key, value in (("d", 0), ("pallet_x", 1000), ("pallet_y", 1200)):
+        ws.dims_fields[key].set_value(value)
+    ws.fit_button.click()
+    assert (ws.dims_fields["kl"].value(), ws.dims_fields["kb"].value()) == (320, 240)
+    ws.accept_valid()
+    pattern = window.session.project.patterns[0]
+    assert (pattern.dims.kl, pattern.dims.kb) == (320, 240) and pattern.hints

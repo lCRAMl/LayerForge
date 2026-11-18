@@ -36,7 +36,9 @@ layerpattern/
     geometry.py    exact evaluation in 1/16 mm, overlap/clearance/neighbours, symbolic bounding box,
                    validity conditions
     snapping.py    relation catalogue (adjacent + D, flush, centred, half step) and resolution
-    reconstruct.py drawn rectangles -> symbolic pattern by topology (drawings are not to scale)
+    reconstruct.py drawn rectangles -> symbolic pattern by topology (drawings are not to scale),
+                   plus the drawing's KL/KB proportions ("hints", e.g. 3*KL = 4*KB)
+    fitting.py     Fit to pallet: round KL/KB that keep the hints and fit the pallet best
     validation.py, duplicates.py, transform.py, sequence.py, operations.py, export_model.py
   application/     Qt-free use cases: undo (snapshot stack), incremental validator, export service
                    (staging folder + rollback), DB import

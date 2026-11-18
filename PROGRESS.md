@@ -5,13 +5,14 @@ Design: `doc/DESIGN.md`. Requirements: `../Claude_Code_Prompt_Layerpattern_Tool.
 
 ## Current state
 
-- Phase: **all four phases done** (134 tests green). Waiting for user feedback and a TIA V21 import test. Design approved 2026-11-18 (all D1–D21 as recommended, D20 = set A).
+- Phase: **all four phases done + Fit to pallet** (150 tests green). Waiting for user feedback and a TIA V21 import test. Design approved 2026-11-18 (all D1–D21 as recommended, D20 = set A).
 - Phase 0 done: library extended (uncommitted in the library repo – the user commits).
 
 ## Next steps
 
 1. User: try the tool (F5 in VS Code), import the generated TIA sources into V21.
 2. Then: fix whatever the hands-on test shows.
+3. Uncommitted since abb7920: Fit to pallet, Excel columns, dimension drafts, dialog sizing, new help.
 
 ### Phase 2 plan
 - application/undo.py (snapshot undo stack, Qt-free) + tests
@@ -62,6 +63,37 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 - Pallet-formats.pdf: 2 pages, pure vector (Excel, lines as thin rects), 4 patterns, 28/15/22/12 packages, pattern 4 has an internal hole; drawings not to scale.
 
 ## Log
+
+### 2026-11-18 – Fit to pallet implemented (150 tests green)
+- domain/cancel.py (Cancelled moved out of infrastructure), reconstruct.drawing_hints -> Reconstruction.hints,
+  Pattern.hints (+ JSON drawingHints, optional), operations add/replace/rotated_copy pass hints,
+  geometry.primitive(positive=) and Condition.text(times, ge), domain/fitting.py (rule as agreed).
+- UI: Properties "Fit to pallet" + "Alternatives" menu (one undo step each), "Drawing proportions" line in the
+  status block; PDF tab "Fit to pallet" for the selected proposal (fills KL/KB, shows hints in details);
+  Options group "Fit to pallet" (grid 5/10/25/50, tolerance mm); settings fit_step/fit_band.
+- Excel Patterns sheet: Width, Height, ValidWhile.
+- Help rewritten: contents by topic, Where/Requires/Result per function, Fit to pallet, keys, colours, FAQ.
+- Tests: tests/test_fitting.py (rule, roundness band, fallback, hints from the user's VMF screenshot), hint
+  persistence, GUI fit in editor and PDF tab, updated Excel test.
+
+### 2026-11-18 – Fit to pallet: answers
+- F1 (user): overhang allowed; prefer "round" numbers (300 > 305 > 307); then least overhang and most area;
+  flush stays flush. F2 10 mm, F3 D fixed, F4 both places, F5 persist drawing hints, F6 manual = fit only,
+  F7 add Width/Height/ValidWhile to the Excel Patterns sheet.
+- Proposed rule (prototype): flush hints = KL/KB part of drawn coincidences (|g| <= 1 step); fit deviation =
+  2 x overhang + unused edge (mm, width + height); candidates within best + 25 mm; rank roundness
+  (x100=3, x50=2, x10=1, KL+KB) > less overhang > more area. Results: VMF 320x240, EU04 400x400, EU09 400x260.
+  Real implementation needs integer evaluation (prototype 2.5-3.5 s for patterns without hints).
+
+### 2026-11-18 – Proposal "Fit to pallet" (nothing implemented yet, user asked to be asked first)
+- TRXing (Z:/Code/python/TRXing) solves the inverse problem (given package -> arrangement); not reusable here.
+- Throw-away prototype (scratch only): brute force over KL >= KB on a 10 mm grid, D fixed, pattern must fit the
+  pallet, edges flush in the drawing must stay flush, maximise covered area, validity check on the best ones.
+  VMF 15 cases (1000 x 1200, D 0) -> 320 x 240, 96 %; pinwheel 28 cases -> 240 x 160, 90 %; 0.3-0.6 s.
+- Prototype lessons: touching cells must not yield a "D = 0" equality; outline drawings (gap 0) do not show
+  where D goes, so equalities differing only in D need to be merged / tolerated by their D term.
+- Open questions F1-F7 sent (criterion, grid, D fixed, where in the GUI, persist drawing hints, manual patterns,
+  Excel Patterns sheet extra columns Width/Height/ValidWhile).
 
 ### 2026-11-18 – User feedback round 1 (136 tests green)
 - Library committed on branch `next` (86fd5be, not pushed). Tool repo: initial commit on master.

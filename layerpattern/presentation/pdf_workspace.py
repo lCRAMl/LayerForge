@@ -329,8 +329,37 @@ class PdfWorkspace(QWidget):
             field = CompactIntField("mm", minimum=minimum, maximum=99_999, value=getattr(dims, key))
             form.addRow(text, field)
             self.dims_fields[key] = field
+        self.fit_button = CompactButton("Fit to pallet")
+        self.fit_button.setToolTip("Fill KL and KB with round values that fit the selected proposal\n"
+                                   "onto the pallet above (D and pallet stay as entered).")
+        self.fit_button.clicked.connect(self.fit_selected)
+        form.addRow("", self.fit_button)
         column.addWidget(group)
         return box
+
+    def fit_selected(self) -> None:
+        from layerpattern.domain.fitting import fit_to_pallet
+
+        entry = self._entry(self.selected_key)
+        if entry is None:
+            self.session.notify("Select a proposal first; its KL and KB are fitted to the pallet.",
+                                "warning")
+            return
+        dims = self.accept_dims()
+        rec = entry.proposal.reconstruction
+        results = fit_to_pallet(rec.packages, rec.hints, dims.pallet_x, dims.pallet_y, dims.d,
+                                self.settings.fit_step, self.settings.fit_band)
+        if not results:
+            self.session.notify("No KL/KB found that keeps this proposal valid on the pallet.", "warning")
+            return
+        best = results[0]
+        self.dims_fields["kl"].set_value(best.kl)
+        self.dims_fields["kb"].set_value(best.kb)
+        self._refresh_list()
+        self._show_details(entry)
+        note = "" if best.drawing_kept else " The proportions of the drawing could not be kept."
+        self.session.notify("Fit to pallet: " + best.summary() + "." + note
+                            + " Accept to use these values.", "info" if best.drawing_kept else "warning")
 
     # ------------------------------------------------------------- PDFs
 
@@ -499,7 +528,7 @@ class PdfWorkspace(QWidget):
         sensitivity, max_packages, pdf_id = self.settings.sensitivity, self.settings.max_packages, self.pdf_id
 
         def job(cancel, progress):
-            from layerpattern.infrastructure.recognition.detect import Cancelled
+            from layerpattern.domain.cancel import Cancelled
             from layerpattern.infrastructure.recognition.pipeline import recognize
             total = 0
             for done, page in enumerate(pages, start=1):
@@ -654,6 +683,10 @@ class PdfWorkspace(QWidget):
         p = entry.proposal
         color = LEVEL_COLOR[p.level]
         lines = [f"<span style='color:{color}'>&#9632;</span> " + m for m in p.messages] or ["No warnings."]
+        if p.reconstruction.hints:
+            from layerpattern.domain.geometry import Condition
+            lines.append("Drawing proportions: " + "; ".join(
+                Condition(h).text(ge="=") for h in p.reconstruction.hints))
         self.details.setText("<br>".join(lines))
         existing = self._existing_for(entry)
         if existing is None:
@@ -688,8 +721,9 @@ class PdfWorkspace(QWidget):
             first = None
             for e in chosen:
                 source = SourceRef(e.pdf_id, e.proposal.page, tuple(e.proposal.region))
-                project, uid = ops.add_pattern(project, e.proposal.reconstruction.packages, dims,
-                                               source=source, origin=Origin.RECOGNIZED)
+                rec = e.proposal.reconstruction
+                project, uid = ops.add_pattern(project, rec.packages, dims, source=source,
+                                               origin=Origin.RECOGNIZED, hints=rec.hints)
                 first = first or uid
             return project, first
 
@@ -711,7 +745,7 @@ class PdfWorkspace(QWidget):
         source = SourceRef(entry.pdf_id, entry.proposal.page, tuple(entry.proposal.region))
         if self.session.execute(f"Replace pattern {existing.pattern_id}",
                                 lambda p: ops.replace_geometry(p, existing.uid, entry.proposal.reconstruction.packages,
-                                                               source)):
+                                                               source, entry.proposal.reconstruction.hints)):
             self.entries = [e for e in self.entries if e.key != entry.key]
             self._refresh_list()
 

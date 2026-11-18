@@ -18,7 +18,7 @@ from layerpattern.application.export_service import ExportRequest, output_files,
 from layerpattern.domain.export_model import TiaNames, package_rows
 from layerpattern.domain.model import MAX_PATTERN_ID, MIN_PATTERN_ID, Dimensions, Pattern
 from layerpattern.domain.validation import PatternReport
-from layerpattern.presentation.settings import SENSITIVITIES
+from layerpattern.presentation.settings import FIT_STEPS, SENSITIVITIES
 from layerpattern.presentation.theme import ERROR, OK, WARNING
 
 
@@ -248,6 +248,18 @@ class OptionsDialog(QDialog):
             self.dims[key] = field
         layout.addWidget(defaults)
 
+        fit = CompactGroupBox("Fit to pallet")
+        form = QFormLayout(fit)
+        self.fit_step = CompactDropdown()
+        self.fit_step.addItems([f"{step} mm" for step in FIT_STEPS])
+        self.fit_step.setCurrentIndex(FIT_STEPS.index(settings.fit_step))
+        form.addRow("Grid for KL and KB", self.fit_step)
+        self.fit_band = CompactIntField("mm", minimum=0, maximum=500, value=settings.fit_band)
+        self.fit_band.setToolTip("How much worse a rounder size may fit than the best one\n"
+                                 "(overhang counts double, unused pallet edge single).")
+        form.addRow("Tolerance for round values", self.fit_band)
+        layout.addWidget(fit)
+
         self.error = Message()
         layout.addWidget(self.error)
         layout.addWidget(_buttons(self, "Apply"))
@@ -269,6 +281,8 @@ class OptionsDialog(QDialog):
         s.max_packages = self.max_packages.value()
         s.tia_names = self.names()
         s.default_dimensions = dims
+        s.fit_step = FIT_STEPS[self.fit_step.currentIndex()]
+        s.fit_band = self.fit_band.value()
         s.sync()
         super().accept()
 

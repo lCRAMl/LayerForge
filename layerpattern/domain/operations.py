@@ -32,7 +32,8 @@ def next_pattern_id(project: Project) -> int | None:
 
 def add_pattern(project: Project, packages=(), dims: Dimensions | None = None,
                 pattern_id: int | None = None, source: SourceRef | None = None,
-                origin: str = Origin.MANUAL, index: int | None = None) -> tuple[Project, int]:
+                origin: str = Origin.MANUAL, index: int | None = None,
+                hints=()) -> tuple[Project, int]:
     """Append (or insert at `index`) a new pattern; returns the project and the new uid."""
     if pattern_id is None:
         pattern_id = next_pattern_id(project)
@@ -41,7 +42,7 @@ def add_pattern(project: Project, packages=(), dims: Dimensions | None = None,
     elif any(p.pattern_id == pattern_id for p in project.patterns):
         raise OperationError(f"PatternId {pattern_id} is already in use.")
     pattern = Pattern(project.next_uid, pattern_id, tuple(packages), dims or Dimensions(),
-                      None, source, origin)
+                      None, source, origin, tuple(hints))
     patterns = list(project.patterns)
     patterns.insert(len(patterns) if index is None else index, pattern)
     return replace(project, patterns=tuple(patterns), next_uid=project.next_uid + 1), pattern.uid
@@ -99,15 +100,17 @@ def rotated_copy(project: Project, uid: int, quarter_turns: int) -> tuple[Projec
     """Rotated copy with a new PatternId, inserted right after the original in the list."""
     pattern = project.pattern(uid)
     packages = rotate_packages(pattern.packages, quarter_turns, pattern.dims)
-    return add_pattern(project, packages, pattern.dims, index=project.index_of(uid) + 1)
+    # Proportion hints are about widths and lengths, so they survive a rotation.
+    return add_pattern(project, packages, pattern.dims, index=project.index_of(uid) + 1,
+                       hints=pattern.hints)
 
 
 def replace_geometry(project: Project, uid: int, packages: tuple[Package, ...],
-                     source: SourceRef | None) -> Project:
+                     source: SourceRef | None, hints=()) -> Project:
     """Re-recognition result explicitly accepted over an existing pattern (decision D17)."""
     pattern = project.pattern(uid)
     return project.with_pattern(replace(pattern.with_packages(packages), source=source,
-                                        origin=Origin.RECOGNIZED))
+                                        origin=Origin.RECOGNIZED, hints=tuple(hints)))
 
 
 def add_pdf(project: Project, path: str) -> tuple[Project, int]:
