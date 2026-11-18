@@ -34,13 +34,19 @@ class StartPage(QWidget):
         column = QVBoxLayout()
         column.setSpacing(10)
         column.addStretch(2)
+        # Halo buttons keep HaloButton.ROOM free around their frame for the glow; the
+        # texts above them are indented by the same amount so their edges line up.
+        indent = HaloButton.ROOM
         title = QLabel(APP_NAME)
+        title.setContentsMargins(indent, 0, 0, 0)
         font = title.font()
         font.setPointSizeF(font.pointSizeF() * 2.4)
         font.setWeight(300)
         title.setFont(font)
         column.addWidget(title)
-        column.addWidget(_dimmed(QLabel("Pallet layer patterns from PDF to symbolic PLC parameters.")))
+        subtitle = _dimmed(QLabel("Pallet layer patterns from PDF to symbolic PLC parameters."))
+        subtitle.setContentsMargins(indent, 0, 0, 0)
+        column.addWidget(subtitle)
         column.addSpacing(24)
         for text, signal in (("New project", self.newRequested), ("Open project", self.openRequested),
                              ("Import generated TIA DB", self.importRequested)):
@@ -51,12 +57,17 @@ class StartPage(QWidget):
             column.addWidget(button)
         column.addSpacing(18)
         self.recent_title = QLabel("Recent projects")
+        self.recent_title.setContentsMargins(indent, 0, 0, 0)
         bold = self.recent_title.font()
         bold.setBold(True)
         self.recent_title.setFont(bold)
         column.addWidget(self.recent_title)
         self.recent_box = QVBoxLayout()
         self.recent_box.setSpacing(2)
+        # FrameButton keeps a narrower margin than HaloButton; inset the list by the
+        # difference so its frames have the same width as the buttons above.
+        inset = HaloButton.ROOM - FrameButton.RING_ROOM
+        self.recent_box.setContentsMargins(inset, 0, inset, 0)
         column.addLayout(self.recent_box)
         column.addStretch(3)
         column.addWidget(_dimmed(QLabel(f"Version {APP_VERSION}" + (f" · built {BUILD_TIME}" if BUILD_TIME else ""))),

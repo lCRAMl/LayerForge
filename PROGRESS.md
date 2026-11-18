@@ -69,9 +69,12 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
   (the earlier attempt never ran: it was chained after the failed mv).
 - The Start shortcut pointed into the old folder. The user's other tiles reference versioned .lnk files that
   Windows creates when the EXE itself is pinned - they go stale with every build.
-- AUTOBUILD: stable Start Menu/Programs/LayerForge.lnk retargeted on every build; pin_to_start() uses the shell
-  verb "pintostartscreen" once and verifies via Export-StartLayout, else prints the manual way.
-- Start page: version line centred (it was right-aligned and looked shifted by the Halo glow margin).
+- AUTOBUILD: stable Start Menu/Programs/LayerForge.lnk retargeted on every build. Programmatic "Pin to Start"
+  is refused by Windows 10 (shell verb DoIt -> E_ACCESSDENIED; only Explorer may pin), so check_start_tile()
+  only verifies via Export-StartLayout and prints the one-time manual step. A tile pinned to LayerForge.lnk
+  follows every later build.
+- Start page: version line centred; title, subtitle and "Recent projects" indented by HaloButton.ROOM and the
+  FrameButton list inset by ROOM - RING_ROOM, so all edges line up with the button frames.
 
 ### 2026-11-18 – LayerForge: rename, Halo dialogs, AUTOBUILD (152 tests green)
 - Decisions G1-G6 approved as recommended (repo by Claude, rename as proposed, program folder, icon, v1.0.0, Halo dialogs).

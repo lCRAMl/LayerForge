@@ -3,8 +3,8 @@
 # Builds LayerForge with PyInstaller as a program folder (decision G3: starts in about
 # a second; a single-file EXE would unpack ~150 MB on every start). Writes
 # build_version.py (version from git), bundles the help, the TIA templates and the icon,
-# runs the built program's self-test, points the Start-menu shortcut "LayerForge" at the
-# new build and pins it as a Start tile if it is not pinned yet.
+# runs the built program's self-test and points the Start-menu shortcut "LayerForge" at the
+# new build, so a Start tile pinned to it always starts the newest version.
 # Adapted from APIImageGenerator/AUTOBUILD.py.
 #
 # Usage:  python AUTOBUILD.py
@@ -173,31 +173,18 @@ def start_tile_present(shortcut: Path) -> bool:
     return f"\\{shortcut.name.lower()}" in text
 
 
-def pin_to_start(shortcut: Path) -> None:
-    """Pin the shortcut as a Windows 10 Start tile, once.
+def check_start_tile(shortcut: Path) -> None:
+    """Report whether the Start tile exists; it cannot be created by this script.
 
-    Windows has no official API for a desktop program to pin itself; the shell verb
-    "pintostartscreen" does it on Windows 10. The result is checked, and if the verb is
-    ignored (other Windows versions, policies) the manual way is printed instead.
+    Windows 10 refuses "Pin to Start" from any program but Explorer (the shell verb
+    returns E_ACCESSDENIED), so pinning stays one right-click. Because the shortcut
+    name never changes, that one tile then follows every later build.
     """
     if start_tile_present(shortcut):
-        print("📌 Start tile already present - it now starts the new build")
-        return
-    try:
-        import win32com.client
-
-        shell = win32com.client.Dispatch("Shell.Application")
-        item = shell.Namespace(str(shortcut.parent)).ParseName(shortcut.name)
-        item.InvokeVerb("pintostartscreen")
-    except Exception as exc:
-        print(f"⚠ Pinning failed: {exc}")
-    for _ in range(10):                   # the Start menu updates its layout asynchronously
-        if start_tile_present(shortcut):
-            print("📌 Pinned as a Start tile")
-            return
-        time.sleep(0.5)
-    print(f"⚠ Could not pin automatically. Once by hand: Start > All apps > {shortcut.stem} >"
-          " right-click > Pin to Start. Later builds keep that tile up to date.")
+        print("📌 Start tile present - it now starts the new build")
+    else:
+        print(f"📌 No Start tile yet. Pin it once: Start > All apps > {shortcut.stem} > right-click >"
+              " Pin to Start. Every later build keeps that tile current.")
 
 
 # =========================
@@ -283,7 +270,7 @@ def main() -> int:
     if ok:
         shortcut = create_shortcut(safe_app, exe, target)
         if shortcut is not None:
-            pin_to_start(shortcut)
+            check_start_tile(shortcut)
     clean()
     print(f"\n{'✅ DONE' if ok else '❌ BUILD UNUSABLE'}: {exe}")
     return 0 if ok else 1
