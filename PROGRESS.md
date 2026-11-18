@@ -12,7 +12,7 @@ Design: `doc/DESIGN.md`. Requirements: `../Claude_Code_Prompt_Layerpattern_Tool.
 
 1. User: try the tool (F5 in VS Code), import the generated TIA sources into V21.
 2. Then: fix whatever the hands-on test shows.
-3. Uncommitted since abb7920: Fit to pallet, Excel columns, dimension drafts, dialog sizing, new help.
+3. Everything committed (8c4d700).
 
 ### Phase 2 plan
 - application/undo.py (snapshot undo stack, Qt-free) + tests
