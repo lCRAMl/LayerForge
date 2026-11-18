@@ -3,7 +3,7 @@
 import ast
 from pathlib import Path
 
-PACKAGE = Path(__file__).resolve().parents[1] / "layerpattern"
+PACKAGE = Path(__file__).resolve().parents[1] / "layerforge"
 HEAVY = {"PyQt6", "PySide6", "cv2", "pypdfium2", "fitz", "openpyxl", "jinja2", "numpy"}
 
 

@@ -6,17 +6,18 @@ from pathlib import Path
 import pytest
 from helpers import H, KB, KL, eu13, grid, pkg
 
-from layerpattern.application import export_service
-from layerpattern.application.db_import import project_from_db
-from layerpattern.application.export_service import ExportError, ExportRequest
-from layerpattern.domain import operations as ops
-from layerpattern.domain.export_model import TiaNames, build_snapshot, package_rows
-from layerpattern.domain.model import Dimensions, Origin, Project, SourceRef
-from layerpattern.infrastructure import excel_export, project_store, tia_export, tia_import
-from layerpattern.infrastructure.project_store import ProjectFileError
+from layerforge.application import export_service
+from layerforge.application.db_import import project_from_db
+from layerforge.application.export_service import ExportError, ExportRequest
+from layerforge.domain import operations as ops
+from layerforge.domain.export_model import TiaNames, build_snapshot, package_rows
+from layerforge.domain.model import Dimensions, Origin, Project, SourceRef
+from layerforge.infrastructure import excel_export, project_store, tia_export, tia_import
+from layerforge.infrastructure.project_store import ProjectFileError
 
 GOLDEN = Path(__file__).with_name("golden")
 STAMP = datetime(2026, 11, 18, 17, 45, 0)
+GOLDEN_GENERATOR = "LayerForge 1.0"
 
 
 def golden_project() -> Project:
@@ -48,14 +49,14 @@ def test_project_round_trip_is_exact(tmp_path):
     loaded = project_store.load(path)
     assert loaded == project
     data = json.loads(path.read_text(encoding="utf-8"))
-    assert data["schemaVersion"] == 1 and data["format"] == "layerpattern-project"
+    assert data["schemaVersion"] == 1 and data["format"] == "layerforge-project"
     assert [p["patternId"] for p in data["patterns"]] == [1, 3, 7]   # manual list order
 
 
 def test_newer_schema_is_rejected(tmp_path):
     data = project_store.to_dict(golden_project())
     data["schemaVersion"] = 2
-    path = tmp_path / "new.layerpattern.json"
+    path = tmp_path / ("new" + project_store.EXTENSION)
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ProjectFileError, match="newer version"):
         project_store.load(path)
@@ -63,11 +64,11 @@ def test_newer_schema_is_rejected(tmp_path):
 
 @pytest.mark.parametrize("content, message", [
     ("{not json", "not valid JSON"),
-    ('{"format": "other"}', "not a LayerPattern"),
-    ('{"format": "layerpattern-project"}', "no schema version"),
+    ('{"format": "other"}', "not a LayerForge"),
+    ('{"format": "layerforge-project"}', "no schema version"),
 ])
 def test_broken_files_are_reported(tmp_path, content, message):
-    path = tmp_path / "x.layerpattern.json"
+    path = tmp_path / ("x" + project_store.EXTENSION)
     path.write_text(content, encoding="utf-8")
     with pytest.raises(ProjectFileError, match=message):
         project_store.load(path)
@@ -114,7 +115,7 @@ def test_excel_structure_and_values(tmp_path):
 # --- TIA ---------------------------------------------------------------------
 
 def test_tia_sources_match_golden_files():
-    types, db = tia_export.render(snapshot())
+    types, db = tia_export.render(snapshot(), generator=GOLDEN_GENERATOR)
     for name, text in (("golden_Types.udt", types), ("golden_Patterns.db", db)):
         expected = (GOLDEN / name).read_bytes()
         assert tia_export.encode(text) == expected, f"{name} differs from the golden file"
@@ -217,10 +218,10 @@ def test_safe_base_name():
 
 
 def test_drawing_hints_survive_save_and_load(tmp_path):
-    from layerpattern.domain.linear import LinearForm
+    from layerforge.domain.linear import LinearForm
 
     project, uid = ops.add_pattern(Project(name="h"), grid(2, 1), hints=(LinearForm.of(3, -4),))
-    path = tmp_path / "h.layerpattern.json"
+    path = tmp_path / ("h" + project_store.EXTENSION)
     project_store.save(project, path)
     loaded = project_store.load(path)
     assert loaded.pattern(uid).hints == (LinearForm.of(3, -4),)
@@ -228,3 +229,14 @@ def test_drawing_hints_survive_save_and_load(tmp_path):
     assert data["patterns"][0]["drawingHints"] == [["3", "-4"]]
     del data["patterns"][0]["drawingHints"]                    # files without hints still load
     assert project_store.from_dict(data).patterns[0].hints == ()
+
+
+def test_projects_of_the_former_name_still_open(tmp_path):
+    """Files saved as LayerPattern Tool (*.layerpattern.json) open in LayerForge."""
+    data = project_store.to_dict(golden_project())
+    data["format"] = "layerpattern-project"
+    path = tmp_path / "old.layerpattern.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert project_store.load(path) == golden_project()
+    assert project_store.display_name(path) == "old"
+    assert project_store.display_name(tmp_path / ("new" + project_store.EXTENSION)) == "new"

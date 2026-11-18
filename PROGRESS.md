@@ -1,4 +1,4 @@
-# LayerPattern Tool – Progress Log
+# LayerForge (formerly LayerPattern Tool) – Progress Log
 
 Read this first when resuming. Newest entries at the top of "Log".
 Design: `doc/DESIGN.md`. Requirements: `../Claude_Code_Prompt_Layerpattern_Tool.txt`.
@@ -63,6 +63,30 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 - Pallet-formats.pdf: 2 pages, pure vector (Excel, lines as thin rects), 4 patterns, 28/15/22/12 packages, pattern 4 has an internal hole; drawings not to scale.
 
 ## Log
+
+### 2026-11-18 – LayerForge: rename, Halo dialogs, AUTOBUILD (152 tests green)
+- Decisions G1-G6 approved as recommended (repo by Claude, rename as proposed, program folder, icon, v1.0.0, Halo dialogs).
+- Library: new `halodialog.py` (HaloDialog: frameless, own title bar, drag, Esc/Enter; HaloMessageBox:
+  kinds info/question/warning/error, keyed buttons, ask(), details), tests, README, CHANGELOG. Lib suite 436.
+- Rename: package `layerforge` (git mv), APP_NAME "LayerForge", version from build_version.py ("dev" in
+  source), project_store EXTENSION .layerforge.json + legacy, settings LayerForge\LayerForge + migrate_from
+  (called in app.py), tia_export.render(generator=...) and goldens with "LayerForge 1.0", help/README/launch.
+- The FOLDER rename LayerPatternTool -> LayerForge failed ("Device or resource busy" - VS Code has files
+  open). Must be done with VS Code closed; then add safe.directory entries for the new path (already added).
+- Dialogs: all QMessageBox uses replaced (dialogs.ask_unsaved/confirm/show_details, PDF proposals prompt),
+  own dialogs subclass HaloDialog (content on self.body, _fit_to_content(dialog)).
+- Icon: layerforge/resources/icons/layerforge.svg -> tools/make_icon.py -> .ico (9 sizes) + 256 png;
+  icons.app_icon() for the window. presentation/selftest.py + `--selftest [report]` in app.py.
+- AUTOBUILD.py adapted (program folder, data files, excludes PySide6, self-test, Start-menu shortcut).
+
+### 2026-11-18 – Request: AUTOBUILD, repo LayerForge, rename, lib-style dialogs (questions sent, nothing changed)
+- Source: Z:/Code/python/APIImageGenerator/AUTOBUILD.py (+ core/build_info.py, build_version.py pattern):
+  PyInstaller --onefile --windowed, version from `git describe --tags --long`, Start-menu shortcut via pywin32.
+  PyInstaller 6.22.2 + pywin32 installed. No icon exists for this tool yet.
+- GitHub https://github.com/lCRAMl/LayerForge.git exists and is empty (ls-remote: no refs).
+- Questions G1-G6: who sets up the remote/pushes; rename scope (package, folder, extension, registry, TIA
+  generator vs format name); onefile vs onedir (start time); icon; version tag; frameless Halo dialogs
+  (HaloDialog/HaloMessageBox in the library vs app-local; file dialogs stay native).
 
 ### 2026-11-18 – Fit to pallet implemented (150 tests green)
 - domain/cancel.py (Cancelled moved out of infrastructure), reconstruct.drawing_hints -> Reconstruction.hints,

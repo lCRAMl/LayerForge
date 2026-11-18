@@ -7,11 +7,11 @@ from helpers import eu13, grid, pattern
 from pdf_factory import grid as layout
 from pdf_factory import raster_pdf, vector_pdf
 
-from layerpattern.domain import validation as v
-from layerpattern.domain.export_model import package_rows
-from layerpattern.domain.model import DEFAULT_MAX_PACKAGES, Dimensions
-from layerpattern.infrastructure.recognition.detect import Cancelled
-from layerpattern.infrastructure.recognition.pipeline import ERROR, OK, WARNING, recognize
+from layerforge.domain import validation as v
+from layerforge.domain.export_model import package_rows
+from layerforge.domain.model import DEFAULT_MAX_PACKAGES, Dimensions
+from layerforge.infrastructure.recognition.detect import Cancelled
+from layerforge.infrastructure.recognition.pipeline import ERROR, OK, WARNING, recognize
 
 PRIVATE = Path(__file__).with_name("fixtures") / "private"
 DIMS = Dimensions()
@@ -122,7 +122,7 @@ def test_concurrent_pdf_access_is_serialised(tmp_path):
     """Two threads rendering and recognising at once used to corrupt PDFium's heap."""
     import threading
 
-    from layerpattern.infrastructure.pdf_source import PdfFile
+    from layerforge.infrastructure.pdf_source import PdfFile
 
     pdf = vector_pdf(tmp_path / "t.pdf", TWO_PATTERNS)
     errors = []

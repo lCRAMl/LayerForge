@@ -3,3 +3,11 @@ __pycache__/
 .pytest_cache/
 tests/fixtures/private/*
 !tests/fixtures/private/README.md
+
+# Written by AUTOBUILD.py for every build
+/build_version.py
+
+# Build output (PyInstaller)
+/output/
+/pyinstaller_build/
+*.spec

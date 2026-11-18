@@ -1,9 +1,9 @@
 from helpers import D, H, KB, KL, grid, pattern
 
-from layerpattern.application.undo import Step, UndoStack
-from layerpattern.domain import snapping as s
-from layerpattern.domain import validation as v
-from layerpattern.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Project
+from layerforge.application.undo import Step, UndoStack
+from layerforge.domain import snapping as s
+from layerforge.domain import validation as v
+from layerforge.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Project
 
 DIMS = Dimensions()
 
@@ -93,8 +93,8 @@ def test_undo_limit_drops_oldest():
 # --- incremental validation --------------------------------------------------
 
 def test_incremental_validator_matches_full_check():
-    from layerpattern.application.validator import ProjectValidator
-    from layerpattern.domain import operations as ops
+    from layerforge.application.validator import ProjectValidator
+    from layerforge.domain import operations as ops
     from dataclasses import replace
     from helpers import eu13
 
@@ -116,7 +116,7 @@ def test_incremental_validator_matches_full_check():
     # Only the edited pattern object is checked again; the others come from the cache.
     from unittest import mock
     edited = ops.set_packages(project, c, grid(3, 1))
-    with mock.patch("layerpattern.application.validator.v.check_pattern",
+    with mock.patch("layerforge.application.validator.v.check_pattern",
                     wraps=v.check_pattern) as spy:
         again = validator.reports(edited)
     assert spy.call_count == 1
@@ -126,8 +126,8 @@ def test_incremental_validator_matches_full_check():
 
 
 def test_export_blockers_list_unverified_patterns():
-    from layerpattern.application.validator import ProjectValidator
-    from layerpattern.domain import operations as ops
+    from layerforge.application.validator import ProjectValidator
+    from layerforge.domain import operations as ops
 
     project, uid = ops.add_pattern(Project(), grid(2, 1), pattern_id=4)
     validator = ProjectValidator(DEFAULT_MAX_PACKAGES)

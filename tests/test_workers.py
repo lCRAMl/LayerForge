@@ -7,7 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PyQt6.QtCore import QTimer  # noqa: E402
 
-from layerpattern.presentation.workers import TaskRunner  # noqa: E402
+from layerforge.presentation.workers import TaskRunner  # noqa: E402
 
 
 def slow(seconds, value):
@@ -15,7 +15,7 @@ def slow(seconds, value):
         end = time.monotonic() + seconds
         while time.monotonic() < end:
             if cancel():
-                from layerpattern.infrastructure.recognition.detect import Cancelled
+                from layerforge.infrastructure.recognition.detect import Cancelled
                 raise Cancelled()
             time.sleep(0.01)
         progress("half")

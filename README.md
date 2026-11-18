@@ -1,10 +1,12 @@
-# LayerPattern Tool
+# LayerForge
+
+Formerly "LayerPattern Tool". Repository: https://github.com/lCRAMl/LayerForge
 
 Desktop tool (Windows 10/11, PyQt6) that turns pallet layer patterns from PDF drawings into
 symbolic PLC parameters: every package centre is `Kx·KL + Kx·KB + Kx·D` relative to the pattern
 centre. Patterns are reviewed in a CAD-like editor and exported to Excel and TIA Portal V21 sources.
 
-User help: press F1 in the tool (`layerpattern/resources/help/index.html`).
+User help: press F1 in the tool (`layerforge/resources/help/index.html`).
 
 ## Run
 
@@ -18,17 +20,31 @@ pip install PyQt6 pypdfium2 numpy openpyxl Jinja2 pytest pytest-qt reportlab
 OpenCV: the full `opencv-python` already present on the development machine is fine. On a fresh
 machine install `opencv-python-headless` instead - never both (they share the `cv2` package).
 
-- VS Code: open this folder, choose **LayerPattern Tool** in *Run and Debug*, press F5.
+- VS Code: open this folder, choose **LayerForge** in *Run and Debug*, press F5.
 - Terminal: `python run.py`
 - Tests: `python -m pytest` (≈ 10 s). `pytest.ini` pins `qt_api = pyqt6`, because PySide6 is installed too.
 
-Settings live in the registry: `HKEY_CURRENT_USER\Software\LayerPattern\LayerPatternTool`.
+Settings live in the registry: `HKEY_CURRENT_USER\Software\LayerForge\LayerForge` (the former
+`LayerPattern\LayerPatternTool` key is copied once on first start).
 No log files are written.
+
+## Build
+
+```
+python AUTOBUILD.py
+```
+
+Builds a program folder `output/LayerForge_<version>/` with `LayerForge.exe` (and `_internal/`),
+runs the built program's self-test (`LayerForge.exe --selftest <report>`: PDFium, OpenCV, templates,
+Excel, help, main window) and creates a Start-menu shortcut. The version comes from
+`git describe --tags --long` (tags `v1.0.0`, ...) and is written to `build_version.py` (not committed);
+from a source checkout the version shows as `dev`. Needs `pip install pyinstaller pywin32`.
+The icon is generated from `layerforge/resources/icons/layerforge.svg` with `python tools/make_icon.py`.
 
 ## Structure
 
 ```
-layerpattern/
+layerforge/
   domain/          pure Python: no Qt, OpenCV, PDF, openpyxl, Jinja2 (enforced by tests/test_architecture.py)
     rational.py    coefficient policy: power-of-two denominators <= 16, exact REAL literals
     linear.py      LinearForm l*KL + b*KB + d*D with Fractions

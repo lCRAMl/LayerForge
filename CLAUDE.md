@@ -1,4 +1,4 @@
-# LayerPattern Tool – notes for Claude Code
+# LayerForge (formerly LayerPattern Tool) – notes for Claude Code
 
 - Resume from `PROGRESS.md` (state, decisions, next steps). Update it after every work step.
 - Requirements: `../Claude_Code_Prompt_Layerpattern_Tool.txt` (this spec replaces the V1–V3 parameter model; never reuse old field/variable names).

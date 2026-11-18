@@ -3,12 +3,12 @@
 import pytest
 from helpers import D, H, KB, KL, grid, pattern
 
-from layerpattern.domain import validation as v
-from layerpattern.domain.cancel import Cancelled
-from layerpattern.domain.fitting import applicable_hints, fit_to_pallet, roundness
-from layerpattern.domain.linear import LinearForm
-from layerpattern.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Package
-from layerpattern.domain.reconstruct import flip_y, reconstruct
+from layerforge.domain import validation as v
+from layerforge.domain.cancel import Cancelled
+from layerforge.domain.fitting import applicable_hints, fit_to_pallet, roundness
+from layerforge.domain.linear import LinearForm
+from layerforge.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Package
+from layerforge.domain.reconstruct import flip_y, reconstruct
 
 HINT_3KL_4KB = LinearForm.of(3, -4)
 

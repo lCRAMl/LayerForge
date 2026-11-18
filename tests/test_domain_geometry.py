@@ -3,12 +3,12 @@ from fractions import Fraction
 
 from helpers import D, H, KB, KL, eu13, form, grid, pattern, pkg
 
-from layerpattern.domain import validation as v
-from layerpattern.domain.export_model import fingerprint, package_rows
-from layerpattern.domain.geometry import (
+from layerforge.domain import validation as v
+from layerforge.domain.export_model import fingerprint, package_rows
+from layerforge.domain.geometry import (
     extent, normalized, overhang, relative_centers, validity_conditions
 )
-from layerpattern.domain.model import DEFAULT_MAX_PACKAGES, Dimensions
+from layerforge.domain.model import DEFAULT_MAX_PACKAGES, Dimensions
 
 
 def rows(packages, dims=None):

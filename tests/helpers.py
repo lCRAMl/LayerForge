@@ -6,8 +6,8 @@ package edges, expressed with the symbols KL, KB and D.
 
 from fractions import Fraction
 
-from layerpattern.domain.linear import D, KB, KL, LinearForm, ZERO
-from layerpattern.domain.model import Dimensions, Package, Pattern
+from layerforge.domain.linear import D, KB, KL, LinearForm, ZERO
+from layerforge.domain.model import Dimensions, Package, Pattern
 
 H = Fraction(1, 2)
 

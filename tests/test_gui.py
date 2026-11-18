@@ -8,19 +8,19 @@ import pytest  # noqa: E402
 from helpers import KB, KL, D, H, eu13, grid  # noqa: E402
 from PyQt6.QtCore import QPoint, QPointF, QSettings, Qt  # noqa: E402
 
-from layerpattern.domain import operations as ops  # noqa: E402
-from layerpattern.domain import validation as v  # noqa: E402
-from layerpattern.domain.export_model import is_verified  # noqa: E402
-from layerpattern.domain.model import Dimensions, Project  # noqa: E402
-from layerpattern.presentation import dialogs  # noqa: E402
-from layerpattern.presentation.editor.controller import ADD, ORDER, SELECT  # noqa: E402
-from layerpattern.presentation.settings import AppSettings  # noqa: E402
+from layerforge.domain import operations as ops  # noqa: E402
+from layerforge.domain import validation as v  # noqa: E402
+from layerforge.domain.export_model import is_verified  # noqa: E402
+from layerforge.domain.model import Dimensions, Project  # noqa: E402
+from layerforge.presentation import dialogs  # noqa: E402
+from layerforge.presentation.editor.controller import ADD, ORDER, SELECT  # noqa: E402
+from layerforge.presentation.settings import AppSettings  # noqa: E402
 
 
 @pytest.fixture
 def window(qtbot, tmp_path, qapp, monkeypatch):
-    from layerpattern.presentation.main_window import MainWindow
-    from layerpattern.presentation.theme import apply_theme
+    from layerforge.presentation.main_window import MainWindow
+    from layerforge.presentation.theme import apply_theme
 
     # Closing a modified project asks; a modal box would block the offscreen test run.
     monkeypatch.setattr(dialogs, "ask_unsaved", lambda *_a: "discard")
@@ -53,7 +53,7 @@ def test_starts_with_start_page_and_locked_tabs(window):
     assert window.tabs.currentWidget() is window.start
     assert not window.tabs.isTabEnabled(1)
     assert not window.act_export.isEnabled()
-    assert window.windowTitle() == "LayerPattern Tool"
+    assert window.windowTitle() == "LayerForge"
 
 
 def test_new_project_new_pattern_enters_add_tool(window, qtbot):
@@ -293,23 +293,22 @@ def test_region_rerecognition_offers_replace(window, qtbot, tmp_path):
 
 def test_unaccepted_proposals_are_asked_for(window, qtbot, tmp_path, monkeypatch):
     from pdf_factory import grid as layout, vector_pdf
-    from PyQt6.QtWidgets import QMessageBox
 
     pdf = vector_pdf(tmp_path / "p.pdf", layout(100, 150, 2, 1, 80, 50, 4))
     window.new_project()
     ws = _import(window, qtbot, pdf)
     ws.recognize_pages()
     qtbot.waitUntil(lambda: len(ws.entries) == 1 and ws.act_recognize.isEnabled(), timeout=10000)
-    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.Cancel)
+    monkeypatch.setattr(dialogs, "confirm", lambda *a, **k: False)
     window.new_project()
     assert ws.entries                                         # kept: user cancelled
-    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.Discard)
+    monkeypatch.setattr(dialogs, "confirm", lambda *a, **k: True)
     window.new_project()
     assert not ws.entries
 
 
 def test_missing_pdf_keeps_patterns_editable(window, qtbot, tmp_path):
-    from layerpattern.domain.model import SourceRef
+    from layerforge.domain.model import SourceRef
 
     window.new_project()
     project, pdf_id = ops.add_pdf(window.session.project, str(tmp_path / "gone.pdf"))
@@ -328,8 +327,8 @@ def test_full_workflow_pdf_to_tia_and_back(window, qtbot, tmp_path, monkeypatch)
     from pdf_factory import grid as layout, vector_pdf
     from PyQt6.QtWidgets import QFileDialog
 
-    from layerpattern.application.export_service import ExportRequest
-    from layerpattern.infrastructure import tia_import
+    from layerforge.application.export_service import ExportRequest
+    from layerforge.infrastructure import tia_import
 
     pdf = vector_pdf(tmp_path / "plan.pdf", layout(60, 120, 3, 2, 80, 50, 4) + layout(380, 520, 2, 1, 50, 80, 4))
     window.new_project()
@@ -344,7 +343,7 @@ def test_full_workflow_pdf_to_tia_and_back(window, qtbot, tmp_path, monkeypatch)
         window.act_verify.trigger()
     assert window.act_export.isEnabled()
 
-    target = tmp_path / "Plan.layerpattern.json"
+    target = tmp_path / "Plan.layerforge.json"
     monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: (str(target), ""))
     assert window.save_as()
     assert not window.session.is_modified() and window.session.project.name == "Plan"
@@ -357,8 +356,9 @@ def test_full_workflow_pdf_to_tia_and_back(window, qtbot, tmp_path, monkeypatch)
     monkeypatch.setattr(dialogs.ExportDialog, "exec", lambda self: dialogs.QDialog.DialogCode.Accepted)
     monkeypatch.setattr(dialogs.ExportDialog, "request", lambda self: ExportRequest(out, "Plan"))
     window.export()
-    qtbot.waitUntil(lambda: len(list(out.iterdir())) == 3, timeout=10000)
-    assert sorted(p.name for p in out.iterdir()) == ["Plan_Patterns.db", "Plan_Patterns.xlsx", "Plan_Types.udt"]
+    # While the export runs, its staging folder sits next to the files; wait until it is gone.
+    expected = ["Plan_Patterns.db", "Plan_Patterns.xlsx", "Plan_Types.udt"]
+    qtbot.waitUntil(lambda: sorted(p.name for p in out.iterdir()) == expected, timeout=10000)
 
     imported = tia_import.read(out / "Plan_Patterns.db")
     assert [p.pattern_id for p in imported.patterns] == sorted(p.pattern_id for p in saved.patterns)
@@ -460,3 +460,26 @@ def test_fit_to_pallet_for_a_proposal(window, qtbot, tmp_path):
     ws.accept_valid()
     pattern = window.session.project.patterns[0]
     assert (pattern.dims.kl, pattern.dims.kb) == (320, 240) and pattern.hints
+
+
+def test_confirmations_are_halo_dialogs(window, qtbot):
+    """Deleting a pattern asks in the library style (no Windows frame), and Delete works."""
+    from PyQt6.QtCore import QTimer
+    from PyQt6.QtWidgets import QApplication
+    from qt_controls_pyrs import HaloDialog, HaloMessageBox
+
+    load(window, qtbot, (grid(2, 1), 1), (grid(1, 2), 2))
+    seen = []
+
+    def answer():
+        for widget in QApplication.topLevelWidgets():
+            if isinstance(widget, HaloMessageBox) and widget.isVisible():
+                seen.append(bool(widget.windowFlags() & Qt.WindowType.FramelessWindowHint))
+                widget.buttons["ok"].click()
+
+    QTimer.singleShot(100, answer)
+    window.delete_pattern()
+    assert seen == [True]
+    assert len(window.session.project.patterns) == 1
+    for dialog_class in (dialogs.OptionsDialog, dialogs.ExportDialog):
+        assert issubclass(dialog_class, HaloDialog)

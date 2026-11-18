@@ -366,3 +366,9 @@ library work comes first because the shell depends on it.
   without them, reported.
 - **Excel Patterns sheet** got Width, Height (outline formulas) and ValidWhile (validity conditions), F7.
 - **Example values** form a draft when only the pair is inconsistent (KL < KB); applied as one step once valid.
+- **Renamed to LayerForge** (G2): package `layerforge`, project files `*.layerforge.json` (old
+  `*.layerpattern.json` / format "layerpattern-project" still open), registry `LayerForge\LayerForge`
+  (old key copied once), TIA "Generator: LayerForge <version>" while the exchange format name stays
+  `LayerPattern-TIA 1` so older DBs keep importing; Siemens names unchanged.
+- **Dialogs** are frameless `HaloDialog` / `HaloMessageBox` from QtControlsPyRS (G6); file dialogs stay native.
+- **Build** (G3-G5): AUTOBUILD.py, PyInstaller program folder, version from git tags, `--selftest`.

@@ -1,0 +1,383 @@
+<html>
+<head>
+<style>
+  body { font-size: 10pt; }
+  h1 { font-size: 18pt; font-weight: 300; margin-bottom: 2px; }
+  h2 { font-size: 13pt; margin-top: 22px; margin-bottom: 4px; }
+  h3 { font-size: 10.5pt; margin-top: 12px; margin-bottom: 2px; }
+  td { padding: 2px 10px 2px 0; vertical-align: top; }
+  table.how { margin-left: 12px; margin-bottom: 6px; }
+  table.how td.k { font-weight: bold; width: 70px; }
+  table.ref td { padding-right: 18px; }
+  code { font-family: Consolas, monospace; }
+  .top { font-size: 9pt; }
+</style>
+</head>
+<body>
+<a name="top"></a>
+<h1>LayerForge - Help</h1>
+<p>Turns pallet layer drawings into symbolic PLC parameters: every package centre is written with
+the package length <b>KL</b>, the package width <b>KB</b> and the safety gap <b>D</b>, so one pattern
+works for every case size the PLC receives.</p>
+
+<table>
+<tr><td><b>Start</b></td><td><a href="#quickstart">Quick start</a> · <a href="#window">The window</a> ·
+<a href="#project">Projects</a> · <a href="#dbimport">Import a generated DB</a></td></tr>
+<tr><td><b>PDF</b></td><td><a href="#pdf">PDF tab</a> · <a href="#recognize">Recognize</a> ·
+<a href="#proposals">Proposals and Accept</a> · <a href="#source">Source view and relink</a></td></tr>
+<tr><td><b>Patterns</b></td><td><a href="#patterns">Pattern list and pattern commands</a> ·
+<a href="#editor">Editor</a> · <a href="#snapping">Snapping</a> · <a href="#sequence">Sequence</a></td></tr>
+<tr><td><b>Sizes</b></td><td><a href="#values">Example values</a> · <a href="#fit">Fit to pallet</a></td></tr>
+<tr><td><b>Check and output</b></td><td><a href="#verify">Validation and verification</a> ·
+<a href="#duplicates">Duplicates</a> · <a href="#export">Export</a> · <a href="#options">Options</a></td></tr>
+<tr><td><b>Reference</b></td><td><a href="#keys">Keys and mouse</a> · <a href="#messages">Messages and colours</a> ·
+<a href="#concepts">Concepts and formulas</a> · <a href="#faq">Questions and answers</a></td></tr>
+</table>
+
+<!-- ======================================================================= -->
+<a name="quickstart"></a><h2>Quick start</h2>
+<ol>
+<li><b>Start</b> tab: <i>New project</i>.</li>
+<li><b>PDF</b> tab: <i>Import PDF</i>, select pages, <i>Recognize</i>.</li>
+<li>On the right enter <b>D</b> and the <b>pallet</b>, select a proposal, press <i>Fit to pallet</i>
+(or type the real KL and KB), then <i>Accept</i>.</li>
+<li><b>Editor</b> tab: check every pattern, correct packages and sequence.</li>
+<li><i>Verify</i> each pattern (Ctrl+Enter).</li>
+<li><i>Save</i>, then <i>Export</i>.</li>
+</ol>
+<p>Without a PDF: <i>New Pattern</i> and place packages with <i>Add Package</i>.</p>
+
+<a name="window"></a><h2>The window</h2>
+<table class="ref">
+<tr><td><b>Command bar</b> (top)</td><td>Grouped buttons. Project, Edit, Output and Application are always there;
+the middle groups follow the tab: Pattern, Package, Sequence, View, Check in the editor; PDF, Recognize,
+Proposals in the PDF tab. Hover a button for its shortcut. A narrow window hides the labels first.</td></tr>
+<tr><td><b>Tabs</b></td><td><b>Start</b> (new, open, import DB, recent), <b>Editor</b>, <b>PDF</b>, <b>Help</b>.
+Editor and PDF are available once a project is open.</td></tr>
+<tr><td><b>Editor tab</b></td><td>Left: pattern list. Centre: drawing. Right: <i>Properties</i> (status,
+example values, selected package, display) and <i>Sequence</i>.</td></tr>
+<tr><td><b>Status line</b> (bottom)</td><td>Results, warnings (amber), errors (red). Long messages unfold;
+click to show them again; <i>Details</i> appears for unexpected errors.</td></tr>
+</table>
+
+<!-- ======================================================================= -->
+<a name="project"></a><h2>Projects</h2>
+<h3>New, Open, Save, Save As</h3>
+<table class="how">
+<tr><td class="k">Where</td><td>Command bar <i>Project</i>, or the Start tab. Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S.
+Recent projects (up to five) on the Start tab.</td></tr>
+<tr><td class="k">Requires</td><td>Save and Save As need an open project. With unsaved changes (an asterisk in the
+title) New, Open and closing ask <i>Save / Discard / Cancel</i>.</td></tr>
+<tr><td class="k">Result</td><td>A file <code>*.layerforge.json</code>. The first save names the project after the
+file. There is no autosave. Files of the former name <code>*.layerpattern.json</code> still open.</td></tr>
+</table>
+<p>A project stores the patterns (exact positions, sequence, verification, example values, drawing
+proportions), the list order, the PDF paths and source regions. It does not store the PDFs and no
+unaccepted proposals.</p>
+
+<a name="dbimport"></a><h3>Import a generated DB</h3>
+<table class="how">
+<tr><td class="k">Where</td><td>Start tab <i>Import generated TIA DB</i>, or <i>Project &gt; Import DB</i>.</td></tr>
+<tr><td class="k">Requires</td><td>A <code>*_Patterns.db</code> written by this tool (the header names the generator and
+format version). Other DB sources are refused.</td></tr>
+<tr><td class="k">Result</td><td>A new, unsaved project. Because KL, KB and D are not in the DB you enter example
+values once. All patterns start <b>not verified</b>; PDF links are not restored.</td></tr>
+</table>
+
+<!-- ======================================================================= -->
+<a name="pdf"></a><h2>PDF tab</h2>
+<h3>Import PDF</h3>
+<table class="how">
+<tr><td class="k">Where</td><td>PDF tab, command bar <i>PDF &gt; Import PDF</i>. Several files at once are fine; switch
+between them with the box above the page thumbnails.</td></tr>
+<tr><td class="k">Requires</td><td>An open project.</td></tr>
+<tr><td class="k">Result</td><td>Thumbnails appear page by page in the background. Only the path is stored. Undoable.</td></tr>
+</table>
+
+<a name="recognize"></a><h3>Recognize pages or a region</h3>
+<table class="how">
+<tr><td class="k">Where</td><td><i>Recognize</i>: all selected thumbnails (Ctrl/Shift+click), or the shown page.
+<i>Region</i>: switch on, then drag a rectangle on the page around one pattern. <i>Cancel</i> or Esc stops.</td></tr>
+<tr><td class="k">Requires</td><td>The PDF file is reachable. The example values on the right must be valid
+(KL &ge; KB) - they are used to judge the proposals.</td></tr>
+<tr><td class="k">Result</td><td>Proposals, shown as coloured outlines on the page and in the list on the right.
+The project is not changed. A new result for a page or region replaces the earlier unaccepted proposals there.</td></tr>
+</table>
+<p>What is recognized: filled and outlined rectangles, slightly rounded corners, pages tilted up to about 5°,
+vector drawings and scanned images. Only brightness and edges count - <b>colours never decide anything</b>, not
+even which case is rotated. Text, numbers, arrows and dimensions are ignored. Patterns may be separated by white
+space alone. Drawings are usually <b>not to scale</b>: the tool reads which cases touch and which edges are flush,
+and rebuilds the pattern from that. <i>Options &gt; Recognition sensitivity</i>: Low finds only clear shapes,
+High also faint ones.</p>
+
+<a name="proposals"></a><h3>Proposals: check, size, accept</h3>
+<table class="how">
+<tr><td class="k">Where</td><td>Right side of the PDF tab. Click a proposal (in the list or on the page) to see its
+numbers and messages. The check boxes choose what <i>Accept</i> takes.</td></tr>
+<tr><td class="k">Requires</td><td>Accept: at least one checked proposal and valid example values.
+<i>Accept All Valid</i> takes every proposal without a red mark.</td></tr>
+<tr><td class="k">Result</td><td>New patterns with the next free PatternIds, the example values from the fields, the
+drawing proportions and a link to their PDF region. One step, Ctrl+Z removes all of them again.
+<i>Discard</i> drops checked proposals.</td></tr>
+</table>
+<p>Colours: green = fine, yellow = uncertain (drawn sizes differ, orientation not readable, cases separated by
+their size), red = incomplete (position estimated, overlap, not connected; not checked by default).
+<i>Fit to pallet</i> in the example values fills KL and KB for the <b>selected</b> proposal - see
+<a href="#fit">Fit to pallet</a>. Different case sizes on one page: accept proposals one by one, or accept all and
+use Fit to pallet per pattern in the editor.</p>
+<p><b>Recognizing again</b> an area that was accepted before shows old and new side by side: <i>Accept</i> adds a new
+pattern, <i>Replace pattern n</i> overwrites the old geometry (undoable). Manual edits are never overwritten
+automatically. Unaccepted proposals are lost when the project is closed - the tool asks first.</p>
+
+<a name="source"></a><h3>Source view and relink</h3>
+<table class="how">
+<tr><td class="k">Where</td><td>Editor, <i>Pattern &gt; Source View</i>, or the pattern list context menu.
+<i>PDF &gt; Relink</i> in the PDF tab.</td></tr>
+<tr><td class="k">Requires</td><td>The pattern was accepted from a PDF. If the file has moved, Source View reports it
+and Relink lets you choose the new location.</td></tr>
+<tr><td class="k">Result</td><td>The PDF tab opens the page and frames the original region. Patterns stay fully
+editable even when the PDF is missing.</td></tr>
+</table>
+
+<!-- ======================================================================= -->
+<a name="patterns"></a><h2>Pattern list and pattern commands</h2>
+<p>Each row shows the preview, PatternId, number of packages, a shield when verified, and a badge:
+DUPLICATE, ID TWICE, INVALID (red) or MIRROR (amber). Hover a row for a large preview.
+Drag rows to change the list order (it has no effect on the export). The sort button shows the list
+by PatternId for a moment. Right-click for the pattern commands.</p>
+<table class="ref">
+<tr><td><b>New Pattern</b></td><td><i>Pattern</i> group. Needs a project. Gets the highest PatternId + 1 and
+the default example values (Options); the Add Package tool starts right away.</td></tr>
+<tr><td><b>Delete Pattern</b></td><td>Asks first; a stronger warning for verified or DB-imported patterns, because
+the PLC may use that PatternId. Undoable. Later patterns keep their IDs.</td></tr>
+<tr><td><b>Change ID</b></td><td>1..99, not used by another pattern. Warns about PLC references and
+<b>resets the verification</b>.</td></tr>
+<tr><td><b>Rotate Pattern</b></td><td>Menu: <i>Rotated copy</i> 90°/180°/270° (safer: new pattern with a new ID) or
+rotate in place. The sequence is kept, orientations follow. A rotated copy identical to an existing pattern is
+reported (and blocked as a duplicate).</td></tr>
+</table>
+
+<!-- ======================================================================= -->
+<a name="editor"></a><h2>Editor</h2>
+<table class="ref">
+<tr><td><b>Navigate</b></td><td>Wheel zooms at the cursor, middle button pans, F fits the pattern,
+Shift+F pattern and pallet.</td></tr>
+<tr><td><b>Select</b></td><td>Click; Ctrl+click adds or removes; drag on empty space for a marquee; Ctrl+A all;
+Esc clears.</td></tr>
+<tr><td><b>Move</b></td><td>Drag a package (or the selection). It snaps to symbolic relations
+(<a href="#snapping">Snapping</a>); release always lands on an exact relation. One undo step.</td></tr>
+<tr><td><b>Add Package</b></td><td><i>Package</i> group. The package follows the cursor, R turns it, click places
+it at the end of the sequence; the tool stays on until Esc. The first package of an empty pattern sits at
+the origin.</td></tr>
+<tr><td><b>Duplicate</b> Ctrl+D</td><td>Needs a selection. The copies follow the cursor; click places them once.</td></tr>
+<tr><td><b>Rotate</b> R</td><td>Needs a selection. 0° &harr; 90° about the centre, then snapped again so it does not float.</td></tr>
+<tr><td><b>Delete</b> Del</td><td>Needs a selection. No question - Undo is the safety net. The sequence closes up.</td></tr>
+<tr><td><b>Undo / Redo</b></td><td>Ctrl+Z / Ctrl+Y for everything that changes the project, including accepted
+proposals and example values.</td></tr>
+<tr><td><b>Context menu</b></td><td>Right-click in the drawing for the package, sequence and view commands.</td></tr>
+</table>
+<h3>What the drawing shows</h3>
+<p>Packages with their sequence number and a thin line along KL (the BaseOrientation), the pallet below,
+the pattern centre (= pallet centre), the pattern size (below and left) and the pallet size (above and right).
+For one selected package: its size, its centre relative to the pattern centre (X and Y) and the gaps D to its
+neighbours. <i>Properties &gt; Display</i> switches pallet, sequence numbers, orientation lines, snap guides, package
+centres, bounding box and overhang, and <b>Symbolic / Numeric</b> (also <i>View &gt; Numeric</i>): KL/KB/D
+expressions or millimetres for the current example values. Red hatching marks packages that overlap, are closer
+than D, or are not connected.</p>
+
+<a name="snapping"></a><h2>Snapping</h2>
+<p>A package never has a free position. On each axis it relates to one other package:</p>
+<ul>
+<li><b>adjacent</b> with exactly one D in between (left/right, above/below),</li>
+<li><b>flush</b> edges (left, right, top or bottom),</li>
+<li><b>centred</b> on the other package,</li>
+<li><b>half step</b>: its centre on an edge of the other one, or an edge on its centre (brick bond).</li>
+</ul>
+<p>While dragging, the relation in reach is drawn as a guide line with its name, and the reference package
+is outlined; on release the nearest relation is applied exactly. If several land on the same spot, the
+simplest wins. Gaps other than one D cannot be created.</p>
+
+<a name="sequence"></a><h2>Placement sequence</h2>
+<table class="ref">
+<tr><td><b>Auto Order</b></td><td><i>Sequence</i> group or Sequence tab: rows from bottom to top, each left to right.</td></tr>
+<tr><td><b>Drag and drop</b></td><td>Sequence tab on the right: drag rows to a new position.</td></tr>
+<tr><td><b>Click Order</b></td><td>Click the packages in the wanted order; it finishes after the last one (Enter
+finishes early, the rest keep their order). Esc restores the previous sequence. One undo step.</td></tr>
+</table>
+<p>Moving a package never changes its number. Numbers are always 1..n without gaps or duplicates.
+A changed sequence resets the verification.</p>
+
+<!-- ======================================================================= -->
+<a name="values"></a><h2>Example values (KL, KB, D, pallet)</h2>
+<table class="how">
+<tr><td class="k">Where</td><td>Editor, <i>Properties &gt; Example values</i>, per pattern. For new patterns the
+defaults come from Options; for accepted proposals from the fields in the PDF tab.</td></tr>
+<tr><td class="k">Requires</td><td>Whole millimetres, KL &ge; KB &gt; 0, D &ge; 0, pallet &gt; 0. A field is taken over
+with Enter, Tab or by leaving it.</td></tr>
+<tr><td class="k">Result</td><td>The drawing and all checks use the new values. They are <b>never exported</b>.
+Verification stays - unless the new values change the exported coefficients (the pattern then says so).</td></tr>
+</table>
+<p>All packages of a pattern have the same size; single packages cannot be scaled. If a value only fits
+together with the next one (KL 320 while KB is still 400), it waits as "not applied yet" until the pair is
+consistent - type the values in any order. <i>Revert</i> drops it. <i>Swap pallet</i> exchanges width and length.</p>
+
+<a name="fit"></a><h2>Fit to pallet</h2>
+<table class="how">
+<tr><td class="k">Where</td><td>Editor: <i>Properties &gt; Example values &gt; Fit to pallet</i>, then
+<i>Alternatives</i> for the next best sizes. PDF tab: <i>Fit to pallet</i> under the example values,
+for the selected proposal.</td></tr>
+<tr><td class="k">Requires</td><td>A pattern with packages (or a selected proposal). Enter <b>D</b> and the
+<b>pallet</b> first - they are kept as they are.</td></tr>
+<tr><td class="k">Result</td><td>KL and KB on a round grid. In the editor applied at once (one undo step); in the
+PDF tab written into the fields for Accept. The status line shows pattern size and pallet usage.</td></tr>
+</table>
+<p>The arrangement never changes; only the case size is searched:</p>
+<ol>
+<li><b>The pattern stays as drawn.</b> Edges that are flush in the drawing stay flush (within one grid step;
+safety gaps excepted). The <i>drawing proportions</i>, e.g. <i>3·KL = 4·KB</i>, are shown in the pattern status
+and in the proposal details.</li>
+<li>Only multiples of the grid (Options, default 10 mm), KL &ge; KB, and only sizes for which the pattern is valid.</li>
+<li><b>Fit</b> = overhang beyond the pallet counted twice + unused pallet edge, width plus length.</li>
+<li>Among all sizes at most the <b>tolerance</b> (Options, default 25 mm) worse than the best fit, the
+<b>roundest</b> wins: hundreds before fifties before tens. Then less overhang, then more used area.</li>
+</ol>
+<p>If the drawing's proportions cannot be reached on this pallet, the best size without them is offered and
+the status line says so. Overhang is allowed. After editing, proportions that no longer match the pattern are
+ignored. Patterns built by hand or imported from a DB have no drawing proportions; only rules 2-4 apply.</p>
+
+<!-- ======================================================================= -->
+<a name="verify"></a><h2>Validation and verification</h2>
+<table class="how">
+<tr><td class="k">Where</td><td><i>Check &gt; Verify</i>, Ctrl+Enter, the <i>Verify</i> button in Properties, or the
+pattern list context menu.</td></tr>
+<tr><td class="k">Requires</td><td>The pattern is <b>valid</b> (no red problem in Properties) and not yet verified.
+Enter the intended real KL, KB and D first.</td></tr>
+<tr><td class="k">Result</td><td>After a summary of everything the PLC will receive the pattern is <b>verified</b>
+(green shield).</td></tr>
+</table>
+<p><b>Blocking problems</b> (red): no packages; more than the maximum (Options, default 64); overlapping packages;
+a gap smaller than D between facing packages; packages not connected to the rest (corner contact does not count);
+coefficients that are not multiples of 1/16; a PatternId used twice; an identical pattern elsewhere.</p>
+<p><b>Notes</b> (amber, do not block): KL = KB (orientation exported as 0), mirror image of another pattern,
+"verify again" after example values changed the coefficients.</p>
+<p><b>Verification is reset</b> by any change to what is exported: package position, orientation, adding or
+deleting packages, the sequence, the PatternId. It is kept for example values, pallet, view settings and PDF links.</p>
+<p><b>Coefficients valid while</b>: where the outline is not a rectangle, the pattern centre depends on the sizes.
+The condition shown (e.g. <i>2·KB + D &ge; KL</i>) is where the exported coefficients hold; it is also in the Excel
+export.</p>
+
+<a name="duplicates"></a><h2>Duplicates and mirror images</h2>
+<p><b>Duplicate</b>: same packages at the same relative places with the same orientations - wherever they lie and
+whatever their sequence. Blocks verification and export until one of them is changed or deleted.
+<b>Mirror image</b> (left-right or top-bottom): reported, allowed. A rotated pattern is a different pattern.</p>
+
+<!-- ======================================================================= -->
+<a name="export"></a><h2>Export</h2>
+<table class="how">
+<tr><td class="k">Where</td><td>Command bar <i>Output &gt; Export</i>.</td></tr>
+<tr><td class="k">Requires</td><td><b>Every</b> pattern of the project is valid <b>and</b> verified, and the project has
+at least one pattern. The button tooltip lists what is missing. Target files must not be open in Excel or TIA.</td></tr>
+<tr><td class="k">Result</td><td>In one folder, written in the background from one snapshot. Files are first written
+and checked in a temporary folder; only then they replace the old ones. If anything fails, nothing is changed.</td></tr>
+</table>
+<p>The dialog chooses Excel and/or TIA sources, the folder and the file name prefix, and shows the file names
+and the Siemens names (set in Options).</p>
+<h3>Excel: <code>&lt;prefix&gt;_Patterns.xlsx</code></h3>
+<table class="ref">
+<tr><td><b>Patterns</b></td><td>One row per pattern: <i>PatternId</i>, <i>FirstPackageIndex</i> and
+<i>PackageCount</i> (the same as <code>PatternIndex[PatternId]</code> in the DB - use it to compare TIA watch tables
+with Excel), <i>Width</i> and <i>Height</i> of the outline as formulas (e.g. <code>3*KL + 2*D</code>, useful for
+overhang checks in the PLC) and <i>ValidWhile</i> (the condition above, or "always").</td></tr>
+<tr><td><b>Packages</b></td><td><i>GlobalPackageIndex</i>, <i>PatternId</i>, <i>Sequence</i>, <i>BaseOrientation</i>,
+the six coefficients and the readable X/Y formulas. Sorted by PatternId and sequence; patterns alternate in shade.</td></tr>
+</table>
+<h3>TIA Portal V21: <code>&lt;prefix&gt;_Types.udt</code> and <code>&lt;prefix&gt;_Patterns.db</code></h3>
+<p>Always both together. Import them as external sources, <b>types first</b>, then
+<i>Generate blocks from source</i>. Plain ASCII, generated header with tool, format version and date.</p>
+<p><code>PatternIndex[1..99]</code>: entry = PatternId; <code>0/0</code> = no pattern.
+<code>Package[1..n]</code>: all packages, by PatternId and sequence.
+A package is <code>Package[PatternIndex[id].FirstPackageIndex + Sequence - 1]</code>.
+<b>Global package indices are not stable</b> - deleting or adding a pattern compacts the array. PLC logic must
+always address packages by PatternId and Sequence.</p>
+
+<a name="options"></a><h2>Options</h2>
+<table class="how">
+<tr><td class="k">Where</td><td>Command bar <i>Application &gt; Options</i>.</td></tr>
+<tr><td class="k">Result</td><td>Stored for your Windows user (registry), not in the project.</td></tr>
+</table>
+<table class="ref">
+<tr><td><b>Theme</b></td><td>Dark or light; after a restart.</td></tr>
+<tr><td><b>Recognition sensitivity</b></td><td>Low, Normal, High.</td></tr>
+<tr><td><b>Maximum packages per pattern</b></td><td>Default 64; more is a blocking problem.</td></tr>
+<tr><td><b>Siemens names</b></td><td>Package type, pattern index type, DB name (letters, digits, underscore).</td></tr>
+<tr><td><b>Example values for new patterns</b></td><td>KL, KB, D, pallet for <i>New Pattern</i> and the PDF tab fields.</td></tr>
+<tr><td><b>Fit to pallet</b></td><td>Grid for KL and KB (5, 10, 25, 50 mm) and the tolerance for round values.</td></tr>
+</table>
+
+<!-- ======================================================================= -->
+<a name="keys"></a><h2>Keys and mouse</h2>
+<table class="ref">
+<tr><td>Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S</td><td>New / Open / Save / Save As</td></tr>
+<tr><td>Ctrl+Z / Ctrl+Y</td><td>Undo / Redo</td></tr>
+<tr><td>F1</td><td>Help for the current tab</td></tr>
+<tr><td>Mouse wheel / middle button</td><td>Zoom at cursor / pan (editor and PDF page)</td></tr>
+<tr><td>F / Shift+F</td><td>Fit pattern / pattern and pallet (PDF tab: fit page)</td></tr>
+<tr><td>Click / Ctrl+click / drag on empty space</td><td>Select / extend / marquee</td></tr>
+<tr><td>Ctrl+A</td><td>Select all packages</td></tr>
+<tr><td>R</td><td>Rotate selected packages, or the package being placed</td></tr>
+<tr><td>Delete</td><td>Delete selected packages</td></tr>
+<tr><td>Ctrl+D</td><td>Duplicate and place</td></tr>
+<tr><td>Enter</td><td>Finish a click order</td></tr>
+<tr><td>Ctrl+Enter</td><td>Verify the current pattern</td></tr>
+<tr><td>Esc</td><td>Leave the tool, cancel a drag or click order; in the PDF tab stop recognition / region tool</td></tr>
+</table>
+<p>Single-key shortcuts work in the drawing, not while typing in a field.</p>
+
+<a name="messages"></a><h2>Messages and colours</h2>
+<table class="ref">
+<tr><td><b>Status line</b></td><td>White = information, amber = warning, red = error. <i>Details</i> shows technical
+information for unexpected errors. No log files are written.</td></tr>
+<tr><td><b>Proposals</b></td><td>Green = fine, yellow = uncertain, red = incomplete. Dashed packages are the
+uncertain ones.</td></tr>
+<tr><td><b>Drawing</b></td><td>Blue outline = selected, red hatching = problem, turquoise = snap guide and reference.</td></tr>
+<tr><td><b>Pattern list</b></td><td>Green shield = verified; DUPLICATE / ID TWICE / INVALID = blocking; MIRROR = note.</td></tr>
+</table>
+
+<a name="concepts"></a><h2>Concepts and formulas</h2>
+<table class="ref">
+<tr><td><b>KL, KB, D</b></td><td>Case length, case width (KL &ge; KB), safety gap. Neighbours have exactly one D.</td></tr>
+<tr><td><b>BaseOrientation</b></td><td>0 = KL along pattern X, 90 = KL along pattern Y. The PLC combines it with the
+label scan; that is outside this tool.</td></tr>
+<tr><td><b>Coordinates</b></td><td>X to the right, Y upwards. Reference point: centre of the bounding box over all
+package edges (not the area centroid; holes do not matter). The pallet is centred on it.</td></tr>
+<tr><td><b>Formulas</b></td><td><code>RelativeCenterX = KxL*KL + KxB*KB + KxD*D</code><br>
+<code>RelativeCenterY = KyL*KL + KyB*KB + KyD*D</code><br>
+<code>PackageCenter = PalletCenter + RelativeCenter</code> (in the PLC)</td></tr>
+<tr><td><b>Coefficients</b></td><td>Exact multiples of 1/16 (0.25, -0.5, 1.0 ...), so they are exact as REAL.</td></tr>
+<tr><td><b>Limits</b></td><td>A pattern is checked for the example values entered in the tool, not for every case size.
+Before the PLC uses other sizes, check them in the tool (and mind <i>Coefficients valid while</i>).</td></tr>
+</table>
+
+<a name="faq"></a><h2>Questions and answers</h2>
+<h3>Why is Export greyed out?</h3>
+<p>At least one pattern is invalid or not verified (or the project is empty). Hover <i>Export</i> - the tooltip
+lists the PatternIds. Verify each of them (green shield in the list).</p>
+<h3>Why can I not verify?</h3>
+<p>The pattern has a red problem in <i>Properties</i>, or it is verified already. Typical: packages closer than D,
+a package not touching the rest, or an identical pattern elsewhere.</p>
+<h3>The pattern looks different from the PDF.</h3>
+<p>PDF layer drawings are rarely to scale - the same case is often drawn with different proportions standing and
+lying. The editor is to scale for the entered KL, KB and D. Use <a href="#fit">Fit to pallet</a> or enter the real
+case size; the drawing proportions in the pattern status tell you what the drawing intends.</p>
+<h3>The pattern is far too big for the pallet.</h3>
+<p>The default example values (600 x 400) were used. Enter D and the pallet, then <i>Fit to pallet</i>.</p>
+<h3>My KL entry is "not applied yet".</h3>
+<p>It is smaller than the current KB. Enter KB too; both are applied together. <i>Revert</i> drops the entry.</p>
+<h3>Source View says the PDF is missing.</h3>
+<p>The file was moved or renamed. <i>PDF &gt; Relink</i> in the PDF tab points the project to the new file.</p>
+<h3>Where are my settings?</h3>
+<p>In the registry for your Windows user (<i>LayerForge</i>). Settings of the former name were taken over once. Patterns and their example values
+are in the project file.</p>
+<p class="top"><a href="#top">Back to top</a></p>
+</body>
+</html>

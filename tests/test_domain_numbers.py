@@ -2,8 +2,8 @@ from fractions import Fraction
 
 import pytest
 
-from layerpattern.domain.linear import D, KB, KL, LinearForm
-from layerpattern.domain.rational import (
+from layerforge.domain.linear import D, KB, KL, LinearForm
+from layerforge.domain.rational import (
     NotRepresentable, decimal_text, is_representable, parse_decimal, real_literal
 )
 

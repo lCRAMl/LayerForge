@@ -4,15 +4,15 @@ from datetime import datetime
 import pytest
 from helpers import H, KB, KL, eu13, form, grid, pattern, pkg
 
-from layerpattern.domain import operations as ops
-from layerpattern.domain import validation as v
-from layerpattern.domain.duplicates import compare
-from layerpattern.domain.export_model import (
+from layerforge.domain import operations as ops
+from layerforge.domain import validation as v
+from layerforge.domain.duplicates import compare
+from layerforge.domain.export_model import (
     TiaNames, build_snapshot, fingerprint, is_verified, package_rows
 )
-from layerpattern.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Project
-from layerpattern.domain.sequence import auto_order, moved, reordered
-from layerpattern.domain.transform import rotate_packages
+from layerforge.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Project
+from layerforge.domain.sequence import auto_order, moved, reordered
+from layerforge.domain.transform import rotate_packages
 
 DIMS = Dimensions()
 
