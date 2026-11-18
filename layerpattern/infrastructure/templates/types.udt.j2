@@ -1,0 +1,31 @@
+{% include "header.j2" %}
+// Import together with the DB source of the same export, types first.
+//
+// Package centre relative to the pattern centre (centre of the bounding box
+// over all package outer edges):
+//   RelativeCenterX = KxL*KL + KxB*KB + KxD*D
+//   RelativeCenterY = KyL*KL + KyB*KB + KyD*D
+// KL = long side, KB = short side of the package, D = safety gap [mm].
+// ======================================================================
+
+TYPE "{{ names.package_type }}"
+VERSION : {{ block_version }}
+   STRUCT
+      BaseOrientation : USInt;   // 0 = KL along pattern X, 90 = KL along pattern Y
+      KxL : Real;
+      KxB : Real;
+      KxD : Real;
+      KyL : Real;
+      KyB : Real;
+      KyD : Real;
+   END_STRUCT;
+END_TYPE
+
+TYPE "{{ names.index_type }}"
+VERSION : {{ block_version }}
+   STRUCT
+      FirstPackageIndex : UInt;   // first element in the flat package array, 0 = no pattern
+      PackageCount : UInt;        // packages of this pattern, in placement sequence
+   END_STRUCT;
+END_TYPE
+

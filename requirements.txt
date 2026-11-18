@@ -1,0 +1,17 @@
+# Runtime
+PyQt6>=6.5
+# Editable install of the in-house widget library:
+#   pip install -e Z:\Code\python\QtControlsPyRS
+qt-controls-pyrs>=0.4
+pypdfium2>=4.30
+# The full opencv-python is already installed on the development machine and works
+# (no Qt plugins on Windows). On a fresh machine prefer the headless build; never both.
+opencv-python-headless>=4.9
+numpy>=1.26
+openpyxl>=3.1
+Jinja2>=3.1
+
+# Tests
+pytest>=8
+pytest-qt>=4.4
+reportlab>=4.0   # builds synthetic vector PDFs for recognition tests

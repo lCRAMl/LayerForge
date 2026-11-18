@@ -1,0 +1,38 @@
+// ======================================================================
+// GENERATED FILE - DO NOT EDIT. It is overwritten by the next export.
+// Generator : LayerPattern Tool 1.0
+// Format    : LayerPattern-TIA 1
+// Generated : 2026-11-18 17:45:00
+// Project   : Golden Test - Kave
+// Content   : PLC data types for the layer pattern parameters
+// ======================================================================
+// Import together with the DB source of the same export, types first.
+//
+// Package centre relative to the pattern centre (centre of the bounding box
+// over all package outer edges):
+//   RelativeCenterX = KxL*KL + KxB*KB + KxD*D
+//   RelativeCenterY = KyL*KL + KyB*KB + KyD*D
+// KL = long side, KB = short side of the package, D = safety gap [mm].
+// ======================================================================
+
+TYPE "UDT_LayerPackage"
+VERSION : 1.0
+   STRUCT
+      BaseOrientation : USInt;   // 0 = KL along pattern X, 90 = KL along pattern Y
+      KxL : Real;
+      KxB : Real;
+      KxD : Real;
+      KyL : Real;
+      KyB : Real;
+      KyD : Real;
+   END_STRUCT;
+END_TYPE
+
+TYPE "UDT_LayerPatternIndex"
+VERSION : 1.0
+   STRUCT
+      FirstPackageIndex : UInt;   // first element in the flat package array, 0 = no pattern
+      PackageCount : UInt;        // packages of this pattern, in placement sequence
+   END_STRUCT;
+END_TYPE
+

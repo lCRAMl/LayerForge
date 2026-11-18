@@ -1,0 +1,28 @@
+{% include "header.j2" %}
+// Requires the types "{{ names.package_type }}" and "{{ names.index_type }}".
+//
+// PatternIndex[PatternId] -> FirstPackageIndex, PackageCount (0/0 = no pattern)
+// Package of a pattern:  Package[FirstPackageIndex + Sequence - 1]
+// The flat package array is compacted on every export: reference packages by
+// PatternId and Sequence, never by a stored global package index.
+// ======================================================================
+DATA_BLOCK "{{ names.db }}"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : {{ block_version }}
+NON_RETAIN
+   VAR
+      PatternIndex : Array[1..{{ max_pattern_id }}] of "{{ names.index_type }}";
+      Package : Array[1..{{ snapshot.packages | length }}] of "{{ names.package_type }}";
+   END_VAR
+
+BEGIN
+{% for row in snapshot.patterns %}
+   PatternIndex[{{ row.pattern_id }}].FirstPackageIndex := {{ row.first_index }}; PatternIndex[{{ row.pattern_id }}].PackageCount := {{ row.count }};
+{% endfor %}
+{% for p in snapshot.packages %}
+{% if p.sequence == 1 %}
+   // PatternId {{ p.pattern_id }}
+{% endif %}
+   Package[{{ p.global_index }}].BaseOrientation := {{ p.orientation }}; Package[{{ p.global_index }}].KxL := {{ p.kx.l | real }}; Package[{{ p.global_index }}].KxB := {{ p.kx.b | real }}; Package[{{ p.global_index }}].KxD := {{ p.kx.d | real }}; Package[{{ p.global_index }}].KyL := {{ p.ky.l | real }}; Package[{{ p.global_index }}].KyB := {{ p.ky.b | real }}; Package[{{ p.global_index }}].KyD := {{ p.ky.d | real }};
+{% endfor %}
+END_DATA_BLOCK

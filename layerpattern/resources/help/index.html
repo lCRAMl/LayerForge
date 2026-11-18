@@ -1,0 +1,185 @@
+<html>
+<head>
+<style>
+  body { font-size: 10pt; }
+  h1 { font-size: 18pt; font-weight: 300; }
+  h2 { font-size: 13pt; margin-top: 18px; }
+  h3 { font-size: 11pt; margin-top: 12px; }
+  td { padding: 2px 10px 2px 0; vertical-align: top; }
+  code { font-family: Consolas, monospace; }
+  .note { margin-left: 12px; }
+</style>
+</head>
+<body>
+<h1>LayerPattern Tool</h1>
+<p>Turns pallet layer drawings into symbolic PLC parameters: every package centre is a
+combination of the package length <b>KL</b>, the package width <b>KB</b> and the safety gap
+<b>D</b>, so one pattern works for every package size the PLC receives.</p>
+<p><a href="#workflow">Workflow</a> · <a href="#editor">Editor controls</a> ·
+<a href="#pdf">PDF recognition</a> · <a href="#snapping">Snapping</a> ·
+<a href="#sequence">Placement sequence</a> · <a href="#verify">Verification</a> ·
+<a href="#duplicates">Duplicates</a> · <a href="#values">KL, KB, D, pallet, orientation</a> ·
+<a href="#formulas">Formulas</a> · <a href="#project">Project and DB import</a> ·
+<a href="#export">Export</a> · <a href="#messages">Messages</a> · <a href="#limits">Limits</a></p>
+
+<a name="workflow"></a><h2>Workflow</h2>
+<ol>
+<li><b>Start page:</b> New project, Open project, or Import generated TIA DB.</li>
+<li><b>PDF tab:</b> Import PDF (several are possible), select pages in the thumbnails.</li>
+<li><b>Recognize</b> the selected pages, or switch on <b>Region</b> and draw a rectangle around one pattern.</li>
+<li>Review the proposals (green: fine, yellow: uncertain, red: incomplete). Check the ones you want,
+enter the real KL, KB and D on the right and press <b>Accept</b>. Nothing becomes project data before that.</li>
+<li><b>Editor tab:</b> open each pattern, correct packages, edit the placement sequence, check the dimensions.</li>
+<li>Enter the intended real KL, KB and D, then <b>Verify</b> (Ctrl+Enter) each pattern.</li>
+<li>Resolve duplicates. Mirrored patterns are only reported.</li>
+<li><b>Save</b> the project. <b>Export</b> becomes available when every pattern is valid and verified.</li>
+</ol>
+<p>You can also build a pattern by hand: <b>New Pattern</b> starts the Add Package tool directly.</p>
+
+<a name="editor"></a><h2>Editor controls</h2>
+<table>
+<tr><td>Mouse wheel</td><td>Zoom at the cursor</td></tr>
+<tr><td>Middle mouse button</td><td>Pan</td></tr>
+<tr><td>Left click / Ctrl+click</td><td>Select / add to or remove from the selection</td></tr>
+<tr><td>Drag on empty area</td><td>Marquee selection</td></tr>
+<tr><td>Drag a package</td><td>Move the selection; it snaps to symbolic relations</td></tr>
+<tr><td>F / Shift+F</td><td>Fit pattern / fit pattern and pallet</td></tr>
+<tr><td>R</td><td>Rotate selected packages by 90° (or the package being placed)</td></tr>
+<tr><td>Delete</td><td>Delete selected packages (no question; Undo is the safety net)</td></tr>
+<tr><td>Ctrl+D</td><td>Duplicate the selection and place the copies with a click</td></tr>
+<tr><td>Ctrl+A</td><td>Select all packages</td></tr>
+<tr><td>Esc</td><td>Leave the active tool, cancel a drag or a click order</td></tr>
+<tr><td>Ctrl+Z / Ctrl+Y</td><td>Undo / redo (geometry, sequence, patterns, IDs, accepted proposals)</td></tr>
+<tr><td>Ctrl+Enter</td><td>Verify the current pattern</td></tr>
+<tr><td>F1</td><td>This help</td></tr>
+</table>
+<p><b>Add Package:</b> the package follows the cursor, snap targets light up, R toggles the
+orientation, a click places it (added at the end of the sequence), Esc ends the tool.
+The first package of an empty pattern always sits at the origin.</p>
+<p>The right-hand panel shows the pattern status, the example values, the exact parameters of
+the selected package (read only) and the display options. The context menu of the drawing
+and of the pattern list offers the important commands as well.</p>
+
+<a name="pdf"></a><h2>PDF recognition</h2>
+<p>Works on vector drawings and on PDFs made of images. Only brightness and edges are used:
+<b>colours never decide anything</b>, not even which package is rotated. Recognized are filled
+and outlined rectangles, slightly rounded corners and pages tilted by up to about 5°.
+Text, numbers, arrows and dimensions on the page are ignored; PDF dimensions are never read.</p>
+<ul>
+<li>Patterns may be separated only by white space. A gap of more than about half a package starts a new pattern.</li>
+<li>Touching packages are separated along their lines. A block without separators is split by the
+repeated package size and marked yellow.</li>
+<li>Drawings are schematic: the tool reads which packages touch and which edges are flush and rebuilds
+the pattern from that, not from drawn millimetres. Different drawn sizes give a yellow note.</li>
+<li><b>Sensitivity</b> (Options): Low finds only clear shapes, High also faint ones.</li>
+<li>Recognition runs in the background; <b>Cancel</b> or Esc stops it and leaves the project unchanged.</li>
+<li>Recognizing an area again creates a new proposal. If a pattern was accepted from that area before,
+both are shown side by side: Accept adds a new pattern, <b>Replace</b> overwrites the old geometry
+(undoable). Manual edits are never overwritten automatically.</li>
+<li><b>Source View</b> (Pattern group) shows the PDF page and region a pattern came from. The project stores
+only the PDF path; if the file moved, patterns stay editable and <b>Relink</b> restores the source view.</li>
+</ul>
+
+<a name="snapping"></a><h2>Symbolic snapping</h2>
+<p>A package never has a free position. On each axis it is related to one other package:</p>
+<ul>
+<li><b>adjacent</b> with exactly one D in between (left/right, above/below),</li>
+<li><b>flush</b> edges (left, right, top or bottom),</li>
+<li><b>centred</b> on the other package,</li>
+<li><b>half step</b>: its centre on an edge of the other one, or an edge on its centre (brick bond).</li>
+</ul>
+<p>While dragging, the nearest relation within reach is shown as a guide line with its name, and the
+reference package is outlined. On release the nearest relation is always applied exactly, so a drop
+never leaves an arbitrary position. If several relations land on the same spot, the simplest one wins.
+Other gaps than one D cannot be entered. Rotating a package keeps its centre and snaps it again.</p>
+
+<a name="sequence"></a><h2>Placement sequence</h2>
+<p>The numbers on the packages are the palletizing order. Moving a package never changes it.</p>
+<ul>
+<li><b>Auto Order</b>: rows from bottom to top, each row from left to right.</li>
+<li><b>Sequence</b> tab: drag rows to reorder.</li>
+<li><b>Click Order</b>: click the packages in the wanted order; it finishes after the last one
+(Enter finishes early). Esc restores the previous sequence. The whole click order is one undo step.</li>
+</ul>
+<p>Deleting packages closes the gaps automatically; numbers are always 1..n without duplicates.</p>
+
+<a name="verify"></a><h2>Verification</h2>
+<p>A pattern is either <b>verified</b> or <b>not verified</b>. Verify is possible only for a
+structurally valid pattern and first shows a summary of everything the PLC will receive.</p>
+<p>Changing a package position, orientation, the package set, the sequence or the PatternId resets
+the verification. Changing KL, KB, D or the pallet does not - unless the new values change the
+exported coefficients (see <a href="#limits">Limits</a>); then the pattern shows that it must be
+verified again.</p>
+<p>Blocking problems: no packages, more packages than the maximum (Options, default 64),
+overlapping packages, a gap smaller than D between facing packages, packages not connected to the
+rest (diagonal contact does not count), coefficients outside 1/16 steps, a PatternId used twice,
+an exactly identical pattern elsewhere in the project.</p>
+
+<a name="duplicates"></a><h2>Duplicates and similar patterns</h2>
+<p>Two patterns are <b>duplicates</b> if they have the same packages at the same relative positions
+with the same orientations - wherever they are and whatever their sequence. A duplicate blocks
+verification and export until one of them is changed or deleted.</p>
+<p>A rotated pattern is a different pattern. A <b>mirrored</b> pattern is reported as similar
+(MIRROR badge) but allowed. <b>Rotate Pattern</b> offers rotated copies (safer, new PatternId) and
+in-place rotation by 90°, 180° and 270°; the sequence is kept.</p>
+
+<a name="values"></a><h2>KL, KB, D, pallet and orientation</h2>
+<ul>
+<li><b>KL</b> long side, <b>KB</b> short side, <b>D</b> safety gap - whole millimetres, KL ≥ KB.
+They are stored per pattern for drawing and checking only and are <b>never exported</b>.</li>
+<li>The <b>pallet</b> (width = X, length = Y) is a reference drawn below the pattern and centred with it.
+It is never exported; overhang is allowed and never blocks anything.</li>
+<li><b>BaseOrientation</b> 0: KL along pattern X; 90: KL along pattern Y. If KL equals KB the orientation
+cannot be seen and is exported as 0. The PLC combines it with the label scan; that is not part of this tool.</li>
+<li>Pattern coordinates: X to the right, Y upwards. The <b>Symbolic / Numeric</b> switch shows dimensions
+as KL/KB/D expressions or in millimetres for the current example values.</li>
+</ul>
+
+<a name="formulas"></a><h2>Coefficient formulas</h2>
+<p class="note"><code>RelativeCenterX = KxL*KL + KxB*KB + KxD*D</code><br>
+<code>RelativeCenterY = KyL*KL + KyB*KB + KyD*D</code></p>
+<p>The reference point is the centre of the bounding box over all package outer edges (not the
+area centroid; holes do not matter). The PLC adds the pallet centre:
+<code>PackageCenter = PalletCenter + RelativeCenter</code>.</p>
+<p>Coefficients are exact multiples of 1/16 (0.25, -0.5, 1.0 ...) and therefore exact as REAL.</p>
+
+<a name="project"></a><h2>Project file and DB import</h2>
+<p>Projects are saved as <code>*.layerpattern.json</code> (manual save; no autosave). They contain the
+patterns with exact symbolic positions, sequence, verification, example values, the list order,
+the PDF paths and the source regions - not the PDFs themselves and no recognition proposals.</p>
+<p><b>Import DB</b> reads a DB source generated by this tool and starts a new project from it.
+Because KL, KB and D are not in the DB, you enter example values to display the patterns. Imported
+patterns are not verified.</p>
+
+<a name="export"></a><h2>Excel and TIA Portal export</h2>
+<p>Export writes into one folder, from one consistent snapshot, and only after every file has been
+generated and checked (nothing is left behind if anything fails):</p>
+<ul>
+<li><code>&lt;name&gt;_Patterns.xlsx</code>: sheets <i>Patterns</i> (PatternId, FirstPackageIndex,
+PackageCount) and <i>Packages</i> (index, PatternId, Sequence, BaseOrientation, six coefficients,
+readable X/Y formulas).</li>
+<li><code>&lt;name&gt;_Types.udt</code>: the two data types. <code>&lt;name&gt;_Patterns.db</code>: the DB with
+start values. Import both into TIA Portal V21 as external sources, <b>types first</b>, then
+"Generate blocks from source".</li>
+</ul>
+<p>DB layout (names changeable in Options): <code>PatternIndex[1..99]</code> - entry = PatternId,
+0/0 means no pattern - and the flat array <code>Package[1..n]</code>, ordered by PatternId and sequence.
+A package is <code>Package[PatternIndex[id].FirstPackageIndex + Sequence - 1]</code>.</p>
+<p><b>Global package indices are not stable</b>: deleting or adding a pattern compacts the array.
+PLC logic must always address packages by PatternId and Sequence.</p>
+
+<a name="messages"></a><h2>Messages</h2>
+<p>Short messages appear in the status line at the bottom; warnings are amber, errors red. Long
+messages unfold for a moment; a click shows them again. Unexpected errors offer <b>Details</b>.
+No log files are written.</p>
+<p>Recognition marks: no colour = fine, yellow = uncertain (sizes differ, orientation not readable,
+separated by size), red = incomplete (positions estimated, overlap, not connected).</p>
+
+<a name="limits"></a><h2>Limits of the check</h2>
+<p>A pattern is checked for the KL, KB and D <b>entered in the tool</b>. It is not proven for every
+possible package. Where the outline is not a rectangle, the bounding box depends on the sizes; the
+tool then shows the condition under which the coefficients stay valid, e.g. <i>2·KB + D ≥ KL</i>.
+Enter the intended real values before verifying, and check again in the tool before the PLC uses
+different values.</p>
+</body>
+</html>

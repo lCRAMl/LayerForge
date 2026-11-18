@@ -1,0 +1,2 @@
+# Golden TIA sources are compared byte for byte (ASCII + CRLF): never convert them.
+tests/golden/* -text
