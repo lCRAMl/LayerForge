@@ -1,6 +1,6 @@
 """QGraphicsView of the editor: navigation, grid and the screen-space overlay.
 
-Overlay text (dimensions, sequence numbers, guides) is painted in viewport pixels in
+Overlay text (dimensions, guides) is painted in viewport pixels in
 `drawForeground`, so it stays crisp and readable at every zoom level and costs no
 scene items.
 """
@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import QFrame, QGraphicsView
 
 from layerforge.domain.geometry import overhang
 from layerforge.domain.linear import LinearForm
-from layerforge.presentation.editor.controller import ADD, ORDER, PLACE, EditorController
+from layerforge.presentation.editor.controller import ADD, PLACE, EditorController
 from layerforge.presentation.theme import editor_colors
 
 ZOOM_MIN, ZOOM_MAX = 0.005, 20.0
@@ -286,16 +286,16 @@ class Overlay:
             if display["overhang"]:
                 self._overhang(bounds, pallet)
 
-        self._centre_mark()
+        self._origin_mark()
         selected = ctrl.selected()
-        if len(selected) == 1 and ctrl.mode not in (ADD, PLACE, ORDER):
+        if len(selected) == 1 and ctrl.mode not in (ADD, PLACE):
             self._selected_package(selected[0])
         self._guides()
 
     def _package_marks(self, display) -> None:
-        geo, ctrl = self.geo, self.ctrl
-        ordering = ctrl.mode == ORDER
-        for item in ctrl.items:
+        # No package numbers anywhere: they would read as a placement order, which the
+        # PLC computes itself.
+        for item in self.ctrl.items:
             r = item.sceneBoundingRect()
             tl, br = self.pt(r.left(), r.bottom()), self.pt(r.right(), r.top())
             screen = QRectF(tl, br).normalized()
@@ -315,25 +315,10 @@ class Overlay:
                 self.p.setPen(QPen(self.colors.dimension, 1))
                 self.p.drawLine(centre - QPointF(4, 0), centre + QPointF(4, 0))
                 self.p.drawLine(centre - QPointF(0, 4), centre + QPointF(0, 4))
-            if ordering:
-                if item.index in ctrl.order:
-                    self.text_box(centre, str(ctrl.order.index(item.index) + 1),
-                                  self.colors.guide, bold=True)
-                else:
-                    self.text_box(centre, "?", self.colors.dimension)
-            elif display["sequence"] and min(screen.width(), screen.height()) > 14:
-                self.p.setPen(self.colors.package_text)
-                font = QFont(self.font)
-                font.setPointSizeF(max(7.0, min(14.0, min(screen.width(), screen.height()) / 4)))
-                font.setBold(True)
-                self.p.setFont(font)
-                offset = QPointF(0, -font.pointSizeF() * 0.9) if display["orientation"] else QPointF()
-                self.p.drawText(QRectF(centre.x() - 30, centre.y() - 12, 60, 24) .translated(offset),
-                                int(Qt.AlignmentFlag.AlignCenter), str(item.index + 1))
-        self.p.setFont(self.font)
 
-    def _centre_mark(self) -> None:
-        c = self.pt(0.0, 0.0)
+    def _origin_mark(self) -> None:
+        """Reference point of the exported coefficients: the lower-left pattern corner."""
+        c = self.map(self.geo.corner)
         color = self.colors.selected
         self.p.setPen(QPen(color, 1.2))
         self.p.setBrush(Qt.BrushStyle.NoBrush)
@@ -356,20 +341,21 @@ class Overlay:
                        14, self.label(height_form, box.height()), accent)
         if dragging:
             return                 # the relation is only known on release (see guide label)
-        # Relative centre from the pattern centre, as two legs.
+        # Package centre from the reference corner, as two legs.
         rx, ry = geo.relative[index]
+        ox, oy = geo.corner.x(), geo.corner.y()
         cx, cy = box.center().x(), box.center().y()
-        origin, corner, centre = self.pt(0, 0), self.pt(cx, 0), self.pt(cx, cy)
+        origin, corner, centre = self.pt(ox, oy), self.pt(cx, oy), self.pt(cx, cy)
         pen = QPen(accent, 1, Qt.PenStyle.DashLine)
         self.p.setPen(pen)
         self.p.drawLine(origin, corner)
         self.p.drawLine(corner, centre)
-        if abs(cx) > 1e-6:
-            self.text_box((origin + corner) / 2 + QPointF(0, 12), "X = " + self.label(rx, cx), accent)
-        if abs(cy) > 1e-6:
-            # Beside the vertical leg, away from the sequence number in the package centre.
+        if abs(cx - ox) > 1e-6:
+            self.text_box((origin + corner) / 2 + QPointF(0, 12), "X = " + self.label(rx, cx - ox), accent)
+        if abs(cy - oy) > 1e-6:
             side = -(self.fm.height() / 2 + 10)
-            self.text_box((corner + centre) / 2 + QPointF(side, 0), "Y = " + self.label(ry, cy), accent, -90)
+            self.text_box((corner + centre) / 2 + QPointF(side, 0), "Y = " + self.label(ry, cy - oy),
+                          accent, -90)
         # Neighbour gaps: exactly D by definition of "neighbour".
         dims = geo.pattern.dims
         gap_text = "D" if not self.numeric else fmt_mm(dims.d)

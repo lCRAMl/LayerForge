@@ -4,7 +4,7 @@ Files of the former name (`.layerpattern.json`, format "layerpattern-project") s
 
 Coefficients are stored as exact fraction strings ("1/2"), so a round trip never
 changes the geometry. The pattern array order is the manual list order; the package
-array order is the placement sequence.
+array order has no meaning.
 """
 
 from __future__ import annotations
@@ -49,6 +49,7 @@ def to_dict(project: Project) -> dict:
         "pdfs": [{"id": ref.pdf_id, "path": ref.path} for ref in project.pdfs],
         "patterns": [{
             "patternId": p.pattern_id,
+            "name": p.name,
             "origin": p.origin,
             "verified": p.verified,
             "dimensions": {"KL": p.dims.kl, "KB": p.dims.kb, "D": p.dims.d,
@@ -140,9 +141,11 @@ def from_dict(data: dict) -> Project:
             if not (isinstance(hint, list) and len(hint) == 2):
                 raise ProjectFileError(f"{where}: invalid drawing hint.")
             hints.append(_parse_form(hint + ["0"], f"{where}, drawing hint"))
+        name = raw.get("name", "")      # optional: files saved before names existed
         patterns.append(Pattern(uid, _int(raw, "patternId", where), tuple(packages), dims,
                                 verified if isinstance(verified, str) else None, source,
-                                origin if origin in Origin.ALL else Origin.MANUAL, tuple(hints)))
+                                origin if origin in Origin.ALL else Origin.MANUAL, tuple(hints),
+                                name if isinstance(name, str) else ""))
     return Project(str(data.get("name", "Untitled")), tuple(patterns), pdfs, len(patterns) + 1)
 
 

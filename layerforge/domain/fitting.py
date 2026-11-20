@@ -141,7 +141,7 @@ def fit_to_pallet(packages, hints, pallet_x: int, pallet_y: int, d: int, step: i
     for deviation, kl, kb, w, h, ox, oy, area in pool:
         dims = Dimensions(kl, kb, d, pallet_x, pallet_y)
         # The package-count limit is a project rule, not a question of size.
-        if not validation.check_pattern(Pattern(0, 1, packages, dims), len(packages)).valid:
+        if not validation.check_pattern(Pattern(0, 1, packages, dims), len(packages), require_name=False).valid:
             continue
         results.append(FitResult(kl, kb, w, h, ox / 2, oy / 2, area, deviation, kept))
         if len(results) == count:

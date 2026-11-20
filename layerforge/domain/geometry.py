@@ -140,8 +140,14 @@ def extent(packages, dims: Dimensions) -> Extent:
                   tuple(set(lefts)), tuple(set(rights)), tuple(set(bottoms)), tuple(set(tops)))
 
 
-def relative_centers(packages, dims: Dimensions) -> list[tuple[LinearForm, LinearForm]]:
-    """Package centres relative to the bounding-box centre: the exported geometry."""
+def corner_relative(packages, dims: Dimensions) -> list[tuple[LinearForm, LinearForm]]:
+    """Package centres relative to the lower-left bounding-box corner: the exported geometry."""
+    box = extent(packages, dims)
+    return [(p.x - box.left, p.y - box.bottom) for p in packages]
+
+
+def centre_relative(packages, dims: Dimensions) -> list[tuple[LinearForm, LinearForm]]:
+    """Package centres relative to the bounding-box centre (symmetric frame for mirroring)."""
     cx, cy = extent(packages, dims).center()
     return [(p.x - cx, p.y - cy) for p in packages]
 
@@ -198,10 +204,12 @@ class Condition:
 
 
 def validity_conditions(packages, dims: Dimensions) -> list[Condition]:
-    """Inequalities under which the chosen bounding-box edges stay the extreme ones.
+    """Inequalities under which the left and bottom outline edges stay the extreme ones.
 
-    Outside them a different package defines the outline, the pattern centre moves
-    and every exported coefficient would be different.
+    The coefficients are measured from the lower-left corner, so only those two edges
+    matter. Outside the conditions another package defines that corner and every
+    exported coefficient would be different. The right and top edges are irrelevant:
+    the PLC computes the outline from the packages itself.
     """
     if not packages:
         return []
@@ -219,12 +227,8 @@ def validity_conditions(packages, dims: Dimensions) -> list[Condition]:
 
     for other in box.lefts:
         need(other - box.left)
-    for other in box.rights:
-        need(box.right - other)
     for other in box.bottoms:
         need(other - box.bottom)
-    for other in box.tops:
-        need(box.top - other)
     return out
 
 

@@ -217,10 +217,12 @@ plus traceback (status bar + Details).
 - `Package(x, y, orientation)`: centre as LinearForms in pattern coordinates
   (X right, Y up), orientation 0 (KL along X) or 90 (KL along Y).
 - `Pattern(pattern_id, packages, kl, kb, d, pallet_x, pallet_y, verified_fp, source,
-  origin)`: `packages` order **is** the placement sequence.
-- Export coefficients = package centre − bounding-box centre. The bounding box takes,
-  per side, the package edge that is extreme for the pattern's current KL/KB/D; ties are
-  broken by the simplest form (smallest coefficients).
+  origin, name)`: the order of `packages` has no meaning (since 2026-11-20; before, it was
+  the placement sequence). `name` is what the MFC sends; the PLC looks it up.
+- Export coefficients = package centre − lower-left bounding-box corner (since 2026-11-20;
+  before: − bounding-box centre). The bounding box takes, per side, the package edge that
+  is extreme for the pattern's current KL/KB/D; ties are broken by the simplest form
+  (smallest coefficients).
 - REAL literals: denominators limited to powers of two ≤ 16 → exact decimal with at most
   4 places, always a decimal point (`1.0`, `-0.5`, `0.1875`), never `-0.0`; exactly
   representable as IEEE single, so the PLC sees no rounding.
@@ -372,3 +374,18 @@ library work comes first because the shell depends on it.
   `LayerPattern-TIA 1` so older DBs keep importing; Siemens names unchanged.
 - **Dialogs** are frameless `HaloDialog` / `HaloMessageBox` from QtControlsPyRS (G6); file dialogs stay native.
 - **Build** (G3-G5): AUTOBUILD.py, PyInstaller program folder, version from git tags, `--selftest`.
+- **Corner reference, pattern names, no placement order** (2026-11-20, for the universal PLC project V4):
+  - Coefficients are measured from the lower-left outline corner. Validity conditions only concern the left
+    and bottom edges; the PLC computes the outline (and centres the layer on the pallet) itself. Positions
+    are never negative, single coefficients can be (EU13: Y = -0.5*KL + 2*KB + D).
+  - Every pattern has a name (required, unique ignoring case, <= 16 characters, letters, digits, space and
+    `- _ . / + #`), exported as `PatternIndex[].Name : String[16]`. The MFC sends the name, the PLC searches
+    it. The name is part of the fingerprint; renaming drops verification.
+  - The placement order is computed by the PLC (it depends on where the pallet stands relative to the pickup
+    point). The editor shows no package numbers, the sequence panel, Auto Order and Click Order are gone,
+    Excel has no Sequence column. Export order inside a pattern = automatic order (rows bottom-up, left to
+    right); duplicates are compared in the centre frame (symmetric for mirroring).
+  - Format line stays `LayerPattern-TIA 1`; DBs without names (all earlier exports, centre reference) are
+    refused on import instead of being read shifted.
+  - Editor: the pallet stays centred under the pattern; the origin mark sits on the reference corner and the
+    X/Y legs of the selected package start there. PDF tab: *Select all* / *Select none* above the proposals.

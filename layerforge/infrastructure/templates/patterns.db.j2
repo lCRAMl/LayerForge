@@ -1,10 +1,12 @@
 {% include "header.j2" %}
 // Requires the types "{{ names.package_type }}" and "{{ names.index_type }}".
 //
-// PatternIndex[PatternId] -> FirstPackageIndex, PackageCount (0/0 = no pattern)
-// Package of a pattern:  Package[FirstPackageIndex + Sequence - 1]
-// The flat package array is compacted on every export: reference packages by
-// PatternId and Sequence, never by a stored global package index.
+// PatternIndex[PatternId] -> Name, FirstPackageIndex, PackageCount
+// ('' / 0 / 0 = no pattern). The MFC selects a pattern by its Name.
+// Packages of a pattern: Package[FirstPackageIndex .. FirstPackageIndex + PackageCount - 1]
+// in no particular order - the PLC computes the placement order itself.
+// The flat package array is compacted on every export: never store a global
+// package index, look the pattern up again.
 // ======================================================================
 DATA_BLOCK "{{ names.db }}"
 { S7_Optimized_Access := 'TRUE' }
@@ -17,10 +19,10 @@ NON_RETAIN
 
 BEGIN
 {% for row in snapshot.patterns %}
-   PatternIndex[{{ row.pattern_id }}].FirstPackageIndex := {{ row.first_index }}; PatternIndex[{{ row.pattern_id }}].PackageCount := {{ row.count }};
+   PatternIndex[{{ row.pattern_id }}].Name := '{{ row.name }}'; PatternIndex[{{ row.pattern_id }}].FirstPackageIndex := {{ row.first_index }}; PatternIndex[{{ row.pattern_id }}].PackageCount := {{ row.count }};
 {% endfor %}
 {% for p in snapshot.packages %}
-{% if p.sequence == 1 %}
+{% if p.position == 1 %}
    // PatternId {{ p.pattern_id }}
 {% endif %}
    Package[{{ p.global_index }}].BaseOrientation := {{ p.orientation }}; Package[{{ p.global_index }}].KxL := {{ p.kx.l | real }}; Package[{{ p.global_index }}].KxB := {{ p.kx.b | real }}; Package[{{ p.global_index }}].KxD := {{ p.kx.d | real }}; Package[{{ p.global_index }}].KyL := {{ p.ky.l | real }}; Package[{{ p.global_index }}].KyB := {{ p.ky.b | real }}; Package[{{ p.global_index }}].KyD := {{ p.ky.d | real }};

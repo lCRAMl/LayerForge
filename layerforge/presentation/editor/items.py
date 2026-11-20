@@ -24,7 +24,7 @@ def _pen(color: QColor, width: float = 1.0, style=Qt.PenStyle.SolidLine) -> QPen
 
 
 class PackageItem(QGraphicsItem):
-    """One package. `index` is its position in the placement sequence (0-based)."""
+    """One package. `index` is its position in `Pattern.packages` (0-based, internal only)."""
 
     def __init__(self, index: int, width: float, height: float, orientation: int,
                  ghost: bool = False) -> None:

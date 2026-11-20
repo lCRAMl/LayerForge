@@ -45,7 +45,7 @@ def _snapshot():
     from layerforge.domain.model import Package, Project
 
     project, _uid = ops.add_pattern(Project(name="Selftest"),
-                                    (Package(KL.half(), KB.half(), 0),), pattern_id=1)
+                                    (Package(KL.half(), KB.half(), 0),), pattern_id=1, name="SELFTEST")
     return build_snapshot(project, TiaNames(), datetime.now())
 
 

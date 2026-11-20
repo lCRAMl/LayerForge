@@ -9,7 +9,7 @@ from .model import Dimensions, Package
 
 
 def rotate_packages(packages, quarter_turns: int, dims: Dimensions) -> tuple[Package, ...]:
-    """Rotate about the pattern centre; the placement sequence is kept.
+    """Rotate about the pattern centre; the package order is kept.
 
     A quarter turn maps (x, y) to (-y, x) and swaps the orientation. Rotating about
     the origin and renormalising is the same as rotating about the centre, because

@@ -91,8 +91,8 @@ class VerifyDialog(HaloDialog):
         rows = package_rows(pattern)
         checks = [
             ("PatternId", str(pattern.pattern_id)),
+            ("Name", pattern.name),
             ("Packages", str(len(rows))),
-            ("Sequence", f"complete, 1..{len(rows)}"),
             ("Coefficients", "valid (multiples of 1/16)"),
             ("Overlaps", "none"),
             ("Neighbour graph", "connected"),
@@ -105,15 +105,17 @@ class VerifyDialog(HaloDialog):
                       + "; ".join(c.text() for c in report.conditions) + "</b></p>")
         info = QLabel(f"<table>{text}</table>{notes}<p>Example values used for this check: "
                       f"KL {pattern.dims.kl}, KB {pattern.dims.kb}, D {pattern.dims.d} mm. "
-                      "Different PLC values must be checked again in this tool.</p>")
+                      "Different PLC values must be checked again in this tool.</p>"
+                      "<p>X, Y = package centre measured from the lower-left corner of the pattern. "
+                      "The row order is not the placement order; the PLC computes that.</p>")
         info.setWordWrap(True)
         layout.addWidget(info)
-        table = QTableWidget(len(rows), 4)
-        table.setHorizontalHeaderLabels(["Seq", "BaseOrientation", "X", "Y"])
+        table = QTableWidget(len(rows), 3)
+        table.setHorizontalHeaderLabels(["BaseOrientation", "X", "Y"])
         table.verticalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         for r, (orientation, x, y) in enumerate(rows):
-            for c, value in enumerate((str(r + 1), str(orientation), x.text(), y.text())):
+            for c, value in enumerate((str(orientation), x.text(), y.text())):
                 table.setItem(r, c, QTableWidgetItem(value))
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setStretchLastSection(True)

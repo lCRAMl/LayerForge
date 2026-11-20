@@ -12,7 +12,7 @@ from pathlib import Path
 
 from layerforge import APP_NAME, APP_VERSION
 from layerforge.domain.export_model import FORMAT_NAME, FORMAT_VERSION, ExportSnapshot
-from layerforge.domain.model import MAX_PATTERN_ID
+from layerforge.domain.model import MAX_PATTERN_ID, NAME_LENGTH
 from layerforge.domain.rational import real_literal
 
 TEMPLATES = Path(__file__).with_name("templates")
@@ -55,6 +55,7 @@ def render(snapshot: ExportSnapshot, generator: str | None = None) -> tuple[str,
         "names": snapshot.names,
         "block_version": BLOCK_VERSION,
         "max_pattern_id": MAX_PATTERN_ID,
+        "name_length": NAME_LENGTH,
         "snapshot": snapshot,
     }
     types = env.get_template("types.udt.j2").render(

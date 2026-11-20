@@ -78,7 +78,7 @@ def recognize(path: str, page: int, region: PageRect | None, sensitivity: str, d
             level = WARNING
             if any(detection.boxes[k].split for k in members):
                 messages.append("Touching packages were separated by their repeated size; check them.")
-        report = v.check_pattern(Pattern(0, 1, rec.packages, dims), max_packages)
+        report = v.check_pattern(Pattern(0, 1, rec.packages, dims), max_packages, require_name=False)
         geometry = [i.message for i in report.blockers if i.code in _GEOMETRY]
         if rec.estimated or geometry:
             level = ERROR

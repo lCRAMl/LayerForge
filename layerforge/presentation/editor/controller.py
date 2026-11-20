@@ -1,4 +1,4 @@
-"""Editor logic: selection, tools, dragging with symbolic snapping, sequence editing.
+"""Editor logic: selection, tools, dragging with symbolic snapping.
 
 Items never move themselves. During a drag the controller moves them visually (GUI
 thread, no project change); on release it resolves exact relations and commits ONE
@@ -19,16 +19,15 @@ from layerforge.domain import validation as v
 from layerforge.domain.geometry import extent, neighbour_pairs, normalized, rects
 from layerforge.domain.linear import LinearForm
 from layerforge.domain.model import Package, Pattern
-from layerforge.domain.sequence import auto_order, reordered
 from layerforge.presentation.editor.items import INVALID, NORMAL, PackageItem, PalletItem
 
 SNAP_PX = 14          # snap radius on screen while dragging
 DRAG_START_PX = 4
 
-SELECT, ADD, PLACE, ORDER = "select", "add", "place", "order"
+SELECT, ADD, PLACE = "select", "add", "place"
 
 DISPLAY_DEFAULTS = {
-    "pallet": True, "centres": False, "guides": True, "sequence": True,
+    "pallet": True, "centres": False, "guides": True,
     "orientation": True, "bbox": False, "overhang": False, "numeric": False,
 }
 
@@ -47,6 +46,9 @@ class Geometry:
     cx: float = 0.0                      # bounding-box centre in the stored frame [mm]
     cy: float = 0.0
     boxes: list[QRectF] = field(default_factory=list)   # scene rects (centre at origin)
+    # Reference point of the exported coefficients: lower-left bounding-box corner,
+    # in scene coordinates. The pallet stays centred under the pattern.
+    corner: QPointF = field(default_factory=QPointF)
     relative: list[tuple[LinearForm, LinearForm]] = field(default_factory=list)
     width: LinearForm | None = None
     height: LinearForm | None = None
@@ -95,7 +97,6 @@ class EditorController(QObject):
         self.ghost_packages: list[Package] = []   # stored-frame packages being placed
         self.ghost_snap: tuple = (None, None)
         self.add_orientation = 0
-        self.order: list[int] = []               # click-order assignment so far
         self._suppress_selection = False
         self._pending_selection: list[int] | None = None
         self._last_selection: list[int] = []
@@ -118,7 +119,7 @@ class EditorController(QObject):
         pattern = self.pattern()
         if self.geo is not None and pattern is self.geo.pattern:
             return
-        if self.mode in (PLACE, ORDER):
+        if self.mode == PLACE:
             self.cancel(silent=True)
         self._sync(pattern, keep_view=self.geo is not None and pattern is not None
                    and self.geo.pattern.uid == pattern.uid)
@@ -137,7 +138,8 @@ class EditorController(QObject):
                 w, h = _mm(p.half_width(), dims) * 2, _mm(p.half_height(), dims) * 2
                 x, y = _mm(p.x, dims) - geo.cx, _mm(p.y, dims) - geo.cy
                 geo.boxes.append(QRectF(x - w / 2, y - h / 2, w, h))
-            geo.relative = [(p.x - cx, p.y - cy) for p in pattern.packages]
+            geo.corner = QPointF(_mm(box.left, dims) - geo.cx, _mm(box.bottom, dims) - geo.cy)
+            geo.relative = [(p.x - box.left, p.y - box.bottom) for p in pattern.packages]
             geo.neighbours = neighbour_pairs(rects(pattern.packages, dims), dims)
         except ValueError:
             return Geometry(pattern)
@@ -235,16 +237,6 @@ class EditorController(QObject):
             self._place_ghosts(scene_pos)
             return True
         item = self.item_at(scene_pos)
-        if self.mode == ORDER:
-            if item is not None and item.index not in self.order:
-                self.order.append(item.index)
-                self.overlayChanged.emit()
-                if len(self.order) == len(self.items):
-                    self.finish_order()
-                else:
-                    self.hint.emit(f"Click order: {len(self.order)} of {len(self.items)}. "
-                                   "Enter finishes, Esc restores the previous sequence.")
-            return True
         if item is None:
             return False
         if modifiers & Qt.KeyboardModifier.ControlModifier:
@@ -447,44 +439,6 @@ class EditorController(QObject):
         remaining = [p for i, p in enumerate(self.geo.pattern.packages) if i not in chosen]
         self._commit("Delete packages" if len(chosen) > 1 else "Delete package", remaining, [])
 
-    # --------------------------------------------------------------- sequence
-
-    def auto_order(self) -> None:
-        if self.geo is None or not self.geo.valid_dims:
-            return
-        pattern = self.geo.pattern
-        ordered = auto_order(pattern.packages, pattern.dims)
-        if ordered == pattern.packages:
-            self.hint.emit("The sequence already follows the automatic order.")
-            return
-        self._commit("Automatic sequence", ordered, [])
-
-    def move_in_sequence(self, source: int, target: int) -> None:
-        if self.geo is None:
-            return
-        order = list(range(len(self.geo.pattern.packages)))
-        order.insert(target, order.pop(source))
-        self._commit("Change sequence", reordered(self.geo.pattern.packages, order), [target])
-
-    def start_order(self) -> None:
-        if self.geo is None or not self.items:
-            return
-        self.cancel(silent=True)
-        self.order = []
-        self.set_mode(ORDER)
-        self.hint.emit("Click the packages in the new placement order. Esc restores the previous sequence.")
-
-    def finish_order(self) -> None:
-        if self.mode != ORDER:
-            return
-        n = len(self.items)
-        rest = [i for i in range(n) if i not in self.order]
-        new_order = self.order + rest
-        self.order = []
-        self.set_mode(SELECT)
-        if new_order != list(range(n)):
-            self._commit("Click order", reordered(self.geo.pattern.packages, new_order), [])
-
     # ------------------------------------------------------------------ misc
 
     def cancel(self, silent: bool = False) -> None:
@@ -495,9 +449,6 @@ class EditorController(QObject):
         for g in self.ghosts:
             self.scene.removeItem(g)
         self.ghosts, self.ghost_packages, self.ghost_snap = [], [], (None, None)
-        if self.mode == ORDER and not silent:
-            self.hint.emit("Click order cancelled; the previous sequence is kept.")
-        self.order = []
         if self.mode != SELECT:
             self.set_mode(SELECT)
         elif not silent and self.selected():

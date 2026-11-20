@@ -24,12 +24,11 @@ from layerforge.domain.export_model import is_verified
 from layerforge.domain.model import Origin, Project
 from layerforge.infrastructure import project_store
 from layerforge.presentation import dialogs, icons
-from layerforge.presentation.editor.controller import ADD, ORDER, EditorController
+from layerforge.presentation.editor.controller import ADD, EditorController
 from layerforge.presentation.editor.view import EditorView
 from layerforge.presentation.help_tab import HelpTab
 from layerforge.presentation.pattern_list import PatternList
 from layerforge.presentation.properties import PropertiesPanel
-from layerforge.presentation.sequence_panel import SequencePanel
 from layerforge.presentation.session import ProjectSession
 from layerforge.presentation.start_page import StartPage
 from layerforge.presentation.theme import dark_title_bar
@@ -152,8 +151,6 @@ class MainWindow(QMainWindow):
             a("duplicate", "Duplicate", "duplicate", self.ctrl.duplicate_selected, "Ctrl+D"),
             a("rotate", "Rotate", "rotate_package", self.ctrl.rotate, "R", "Rotate selected packages by 90°"),
             a("delete", "Delete", "delete", self.ctrl.delete_selected, "Delete", "Delete selected packages"),
-            a("auto_order", "Auto Order", "auto_order", self.ctrl.auto_order),
-            a("click_order", "Click Order", "click_order", self._toggle_order, checkable=True),
             a("fit", "Fit", "fit", lambda: self.ctrl.fit(False), "F"),
             a("fit_pallet", "Fit + Pallet", "fit_pallet", lambda: self.ctrl.fit(True), "Shift+F"),
             a("numeric", "Numeric", "numeric", self._toggle_numeric, tip="Symbolic or numeric dimensions",
@@ -161,7 +158,6 @@ class MainWindow(QMainWindow):
             a("verify", "Verify", "verify", self.verify, "Ctrl+Return", "Verify the current pattern"),
             a("cancel", "Cancel Tool", "cancel", self._escape, "Esc"),
             a("select_all", "Select All", "fit", self.ctrl.select_all, "Ctrl+A"),
-            a("finish_order", "Finish Order", "accept", self.ctrl.finish_order, "Return"),
         ]
         self.act_numeric.setChecked(self.ctrl.display["numeric"])
         menu = QMenu(self)
@@ -199,10 +195,6 @@ class MainWindow(QMainWindow):
         g.add_action(self.act_duplicate, "small")
         g.add_action(self.act_rotate, "small")
         g.add_action(self.act_delete, "small")
-        self.editor_groups.append(g)
-        g = bar.add_group("Sequence")
-        g.add_action(self.act_auto_order, "small")
-        g.add_action(self.act_click_order, "small")
         self.editor_groups.append(g)
         g = bar.add_group("View")
         g.add_action(self.act_fit, "small")
@@ -244,9 +236,7 @@ class MainWindow(QMainWindow):
         self.properties.verifyRequested.connect(self.verify)
         self.properties.changeIdRequested.connect(self.change_id)
         self.properties.numeric.toggled.connect(self.act_numeric.setChecked)
-        self.sequence = SequencePanel(self.session, self.ctrl)
         right.addTab(self.properties, "Properties")
-        right.addTab(self.sequence, "Sequence")
         self.splitter.addWidget(self.patterns)
         self.splitter.addWidget(self.view)
         self.splitter.addWidget(right)
@@ -262,8 +252,7 @@ class MainWindow(QMainWindow):
     def _editor_menu(self, pos) -> None:
         menu = QMenu(self)
         for action in (self.act_add, self.act_duplicate, self.act_rotate, self.act_delete, None,
-                       self.act_auto_order, self.act_click_order, None, self.act_fit, self.act_fit_pallet,
-                       None, self.act_verify):
+                       self.act_fit, self.act_fit_pallet, None, self.act_verify):
             if action is None:
                 menu.addSeparator()
             else:
@@ -301,7 +290,6 @@ class MainWindow(QMainWindow):
 
     def _on_mode(self, mode: str) -> None:
         self.act_add.setChecked(mode == ADD)
-        self.act_click_order.setChecked(mode == ORDER)
         self._update_state()
 
     def _update_state(self) -> None:
@@ -313,15 +301,13 @@ class MainWindow(QMainWindow):
             action.setEnabled(has)
         self.act_source_view.setEnabled(pattern is not None and pattern.source is not None)
         for action in (self.act_pattern_delete, self.act_change_id, self.act_rotate_pattern, self.act_add,
-                       self.act_auto_order, self.act_click_order, self.act_fit, self.act_fit_pallet,
-                       self.act_select_all):
+                       self.act_fit, self.act_fit_pallet, self.act_select_all):
             action.setEnabled(pattern is not None)
         for action in (self.act_duplicate, self.act_rotate, self.act_delete):
             action.setEnabled(pattern is not None and selected)
         self.act_rotate.setEnabled(pattern is not None and (selected or self.ctrl.mode == ADD))
         report = s.report(pattern.uid) if pattern is not None else None
         self.act_verify.setEnabled(bool(report and report.valid and not is_verified(pattern)))
-        self.act_finish_order.setEnabled(self.ctrl.mode == ORDER)
         self.act_undo.setEnabled(s.undo.can_undo())
         self.act_redo.setEnabled(s.undo.can_redo())
         self.act_undo.setText(f"Undo {s.undo.undo_label()}".strip())
@@ -526,13 +512,6 @@ class MainWindow(QMainWindow):
             self.ctrl.cancel()
         else:
             self.ctrl.start_add()
-        self.view.setFocus()
-
-    def _toggle_order(self) -> None:
-        if self.ctrl.mode == ORDER:
-            self.ctrl.finish_order()
-        else:
-            self.ctrl.start_order()
         self.view.setFocus()
 
     def _toggle_numeric(self) -> None:

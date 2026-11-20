@@ -13,7 +13,7 @@ from layerforge.domain import validation as v  # noqa: E402
 from layerforge.domain.export_model import is_verified  # noqa: E402
 from layerforge.domain.model import Dimensions, Project  # noqa: E402
 from layerforge.presentation import dialogs  # noqa: E402
-from layerforge.presentation.editor.controller import ADD, ORDER, SELECT  # noqa: E402
+from layerforge.presentation.editor.controller import ADD, SELECT  # noqa: E402
 from layerforge.presentation.settings import AppSettings  # noqa: E402
 
 
@@ -38,7 +38,7 @@ def load(win, qtbot, *patterns):
     project = Project(name="Test")
     uids = []
     for packages, pid in patterns:
-        project, uid = ops.add_pattern(project, packages, pattern_id=pid)
+        project, uid = ops.add_pattern(project, packages, pattern_id=pid, name=f"P{pid}")
         uids.append(uid)
     win._start_project(project, None, "loaded")
     qtbot.wait(400)                        # tab slide + first fit
@@ -72,7 +72,8 @@ def test_new_project_new_pattern_enters_add_tool(window, qtbot):
                       Qt.KeyboardModifier.NoModifier)
     pattern = window.session.current_pattern()
     assert len(pattern.packages) == 2
-    assert window.session.report(pattern.uid).valid
+    # Geometry is fine; only the name is still missing.
+    assert [i.code for i in window.session.report(pattern.uid).blockers] == [v.NAME_MISSING]
     window.ctrl.cancel()
     assert window.ctrl.mode == SELECT
 
@@ -135,29 +136,45 @@ def test_rotate_delete_duplicate_and_undo(window, qtbot):
     assert window.session.current_pattern().packages == grid(3, 1)
 
 
-def test_click_order_and_escape(window, qtbot):
+def test_no_package_numbers_or_sequence_tools(window, qtbot):
+    # The PLC computes the placement order; nothing may look like one.
     load(window, qtbot, (grid(3, 1), 1))
-    ctrl = window.ctrl
-    original = window.session.current_pattern().packages
-    window.act_click_order.trigger()
-    assert ctrl.mode == ORDER
-    ctrl.press(centre(window, 2), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
-    window.act_cancel.trigger()                          # Esc restores
-    assert window.session.current_pattern().packages == original
-    window.act_click_order.trigger()
-    for index in (2, 1, 0):
-        ctrl.press(centre(window, index), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
-    assert window.session.current_pattern().packages == tuple(reversed(original))
-    window.act_undo.trigger()                            # one undo step for the whole click order
-    assert window.session.current_pattern().packages == original
+    assert "sequence" not in window.ctrl.display
+    assert not hasattr(window, "act_click_order") and not hasattr(window, "sequence")
+    window.ctrl._select([2])
+    assert window.properties.package.title() == "Selected package"
 
 
-def test_sequence_list_drag_and_drop(window, qtbot):
-    load(window, qtbot, (grid(3, 1), 1))
-    original = window.session.current_pattern().packages
-    window.ctrl.move_in_sequence(0, 2)
-    assert window.session.current_pattern().packages == (original[1], original[2], original[0])
-    assert window.sequence.list.count() == 3
+def test_origin_mark_on_the_lower_left_corner_pallet_centred(window, qtbot):
+    load(window, qtbot, (eu13(), 1))
+    geo = window.ctrl.geo
+    bounds = geo.boxes[0]
+    for box in geo.boxes[1:]:
+        bounds = bounds.united(box)
+    # Scene Y points up, so QRectF.top() is the lower edge of the pattern.
+    assert (geo.corner.x(), geo.corner.y()) == pytest.approx((bounds.left(), bounds.top()))
+    assert (bounds.center().x(), bounds.center().y()) == pytest.approx((0, 0))
+    assert window.ctrl.pallet.rect().center() == QPointF(0, 0)
+    dims = geo.pattern.dims
+    for box, (rx, ry) in zip(geo.boxes, geo.relative):
+        assert float(rx.value(dims.kl, dims.kb, dims.d)) == pytest.approx(box.center().x() - geo.corner.x())
+        assert float(ry.value(dims.kl, dims.kb, dims.d)) == pytest.approx(box.center().y() - geo.corner.y())
+
+
+def test_pattern_name_in_the_properties_panel(window, qtbot):
+    a, b = load(window, qtbot, (grid(2, 1), 1), (grid(1, 2), 2))
+    window.session.set_current(b)
+    field = window.properties.name
+    assert field.text() == "P2"
+    field.setText("EU13")
+    field.editingFinished.emit()
+    assert window.session.current_pattern().name == "EU13"
+    field.setText("p1")                                  # used by pattern 1 (case ignored)
+    field.editingFinished.emit()
+    assert window.session.current_pattern().name == "EU13" and field.text() == "EU13"
+    assert window.status.level() == "warning"
+    window.act_undo.trigger()
+    assert window.session.current_pattern().name == "P2"
 
 
 def test_export_enabled_only_when_all_verified(window, qtbot, monkeypatch):
@@ -212,9 +229,6 @@ def test_overlay_paints_in_all_modes(window, qtbot):
         ctrl.set_display(name, True)
     ctrl._select([2])
     window.view.grab()
-    ctrl.start_order()
-    window.view.grab()
-    ctrl.cancel()
     ctrl.start_add()
     ctrl.move(QPointF(0, 0))
     window.view.grab()
@@ -268,6 +282,26 @@ def test_pdf_recognize_accept_undo_and_source_view(window, qtbot, tmp_path):
     window.act_source_view.trigger()
     assert window.tabs.currentWidget() is window.pdf_page
     assert ws.view.source_rect == window.session.current_pattern().source.rect
+
+
+def test_select_all_and_select_none(window, qtbot, tmp_path):
+    from pdf_factory import grid as layout, vector_pdf
+
+    pdf = vector_pdf(tmp_path / "two.pdf", layout(60, 120, 3, 2, 80, 50, 4) + layout(380, 520, 2, 1, 50, 80, 4))
+    window.new_project()
+    ws = _import(window, qtbot, pdf)
+    ws.recognize_pages()
+    qtbot.waitUntil(lambda: len(ws.entries) == 2 and ws.act_recognize.isEnabled(), timeout=10000)
+    ws.select_none.click()
+    assert not any(e.checked for e in ws.entries)
+    assert not ws.act_accept.isEnabled() and not ws.select_none.isEnabled()
+    assert all(ws.list.item(r).checkState() == Qt.CheckState.Unchecked for r in range(ws.list.count()))
+    ws.select_all.click()
+    assert all(e.checked for e in ws.entries)
+    assert ws.act_accept.isEnabled() and not ws.select_all.isEnabled()
+    assert all(ws.list.item(r).checkState() == Qt.CheckState.Checked for r in range(ws.list.count()))
+    ws.accept_checked()
+    assert len(window.session.project.patterns) == 2
 
 
 def test_region_rerecognition_offers_replace(window, qtbot, tmp_path):
@@ -338,8 +372,11 @@ def test_full_workflow_pdf_to_tia_and_back(window, qtbot, tmp_path, monkeypatch)
     ws.accept_valid()
 
     monkeypatch.setattr(dialogs.VerifyDialog, "exec", lambda self: dialogs.QDialog.DialogCode.Accepted)
-    for pattern in window.session.project.patterns:
+    for n, pattern in enumerate(window.session.project.patterns, start=1):
         window.session.set_current(pattern.uid)
+        assert not window.act_verify.isEnabled()      # recognized patterns have no name yet
+        window.properties.name.setText(f"L{n}")
+        window.properties.name.editingFinished.emit()
         window.act_verify.trigger()
     assert window.act_export.isEnabled()
 
@@ -367,6 +404,7 @@ def test_full_workflow_pdf_to_tia_and_back(window, qtbot, tmp_path, monkeypatch)
     window.import_db()
     project = window.session.project
     assert len(project.patterns) == 2 and all(p.origin == "db-import" for p in project.patterns)
+    assert sorted(p.name for p in project.patterns) == ["L1", "L2"]
     assert not window.act_export.isEnabled()          # imported patterns start unverified
 
 

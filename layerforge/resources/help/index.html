@@ -26,7 +26,7 @@ works for every case size the PLC receives.</p>
 <tr><td><b>PDF</b></td><td><a href="#pdf">PDF tab</a> · <a href="#recognize">Recognize</a> ·
 <a href="#proposals">Proposals and Accept</a> · <a href="#source">Source view and relink</a></td></tr>
 <tr><td><b>Patterns</b></td><td><a href="#patterns">Pattern list and pattern commands</a> ·
-<a href="#editor">Editor</a> · <a href="#snapping">Snapping</a> · <a href="#sequence">Sequence</a></td></tr>
+<a href="#editor">Editor</a> · <a href="#snapping">Snapping</a> · <a href="#order">Placement order</a></td></tr>
 <tr><td><b>Sizes</b></td><td><a href="#values">Example values</a> · <a href="#fit">Fit to pallet</a></td></tr>
 <tr><td><b>Check and output</b></td><td><a href="#verify">Validation and verification</a> ·
 <a href="#duplicates">Duplicates</a> · <a href="#export">Export</a> · <a href="#options">Options</a></td></tr>
@@ -41,7 +41,7 @@ works for every case size the PLC receives.</p>
 <li><b>PDF</b> tab: <i>Import PDF</i>, select pages, <i>Recognize</i>.</li>
 <li>On the right enter <b>D</b> and the <b>pallet</b>, select a proposal, press <i>Fit to pallet</i>
 (or type the real KL and KB), then <i>Accept</i>.</li>
-<li><b>Editor</b> tab: check every pattern, correct packages and sequence.</li>
+<li><b>Editor</b> tab: check every pattern, give it the <b>name</b> the MFC sends, correct packages.</li>
 <li><i>Verify</i> each pattern (Ctrl+Enter).</li>
 <li><i>Save</i>, then <i>Export</i>.</li>
 </ol>
@@ -50,12 +50,12 @@ works for every case size the PLC receives.</p>
 <a name="window"></a><h2>The window</h2>
 <table class="ref">
 <tr><td><b>Command bar</b> (top)</td><td>Grouped buttons. Project, Edit, Output and Application are always there;
-the middle groups follow the tab: Pattern, Package, Sequence, View, Check in the editor; PDF, Recognize,
+the middle groups follow the tab: Pattern, Package, View, Check in the editor; PDF, Recognize,
 Proposals in the PDF tab. Hover a button for its shortcut. A narrow window hides the labels first.</td></tr>
 <tr><td><b>Tabs</b></td><td><b>Start</b> (new, open, import DB, recent), <b>Editor</b>, <b>PDF</b>, <b>Help</b>.
 Editor and PDF are available once a project is open.</td></tr>
-<tr><td><b>Editor tab</b></td><td>Left: pattern list. Centre: drawing. Right: <i>Properties</i> (status,
-example values, selected package, display) and <i>Sequence</i>.</td></tr>
+<tr><td><b>Editor tab</b></td><td>Left: pattern list. Centre: drawing. Right: <i>Properties</i> (name, status,
+example values, selected package, display).</td></tr>
 <tr><td><b>Status line</b> (bottom)</td><td>Results, warnings (amber), errors (red). Long messages unfold;
 click to show them again; <i>Details</i> appears for unexpected errors.</td></tr>
 </table>
@@ -71,17 +71,19 @@ title) New, Open and closing ask <i>Save / Discard / Cancel</i>.</td></tr>
 <tr><td class="k">Result</td><td>A file <code>*.layerforge.json</code>. The first save names the project after the
 file. There is no autosave. Files of the former name <code>*.layerpattern.json</code> still open.</td></tr>
 </table>
-<p>A project stores the patterns (exact positions, sequence, verification, example values, drawing
+<p>A project stores the patterns (name, exact positions, verification, example values, drawing
 proportions), the list order, the PDF paths and source regions. It does not store the PDFs and no
 unaccepted proposals.</p>
 
 <a name="dbimport"></a><h3>Import a generated DB</h3>
 <table class="how">
 <tr><td class="k">Where</td><td>Start tab <i>Import generated TIA DB</i>, or <i>Project &gt; Import DB</i>.</td></tr>
-<tr><td class="k">Requires</td><td>A <code>*_Patterns.db</code> written by this tool (the header names the generator and
-format version). Other DB sources are refused.</td></tr>
-<tr><td class="k">Result</td><td>A new, unsaved project. Because KL, KB and D are not in the DB you enter example
-values once. All patterns start <b>not verified</b>; PDF links are not restored.</td></tr>
+<tr><td class="k">Requires</td><td>A <code>*_Patterns.db</code> written by this version of LayerForge (the header
+names the generator and format version, every pattern has a name). DBs of earlier versions - no names, coefficients
+from the pattern centre - and other DB sources are refused.</td></tr>
+<tr><td class="k">Result</td><td>A new, unsaved project with the PatternIds and names of the DB. Because KL, KB and D
+are not in the DB you enter example values once. All patterns start <b>not verified</b>; PDF links are not
+restored.</td></tr>
 </table>
 
 <!-- ======================================================================= -->
@@ -113,11 +115,13 @@ High also faint ones.</p>
 <a name="proposals"></a><h3>Proposals: check, size, accept</h3>
 <table class="how">
 <tr><td class="k">Where</td><td>Right side of the PDF tab. Click a proposal (in the list or on the page) to see its
-numbers and messages. The check boxes choose what <i>Accept</i> takes.</td></tr>
+numbers and messages. The check boxes choose what <i>Accept</i> and <i>Discard</i> take; <i>Select all</i> and
+<i>Select none</i> above the list set all of them at once (<i>Select all</i> includes red proposals).</td></tr>
 <tr><td class="k">Requires</td><td>Accept: at least one checked proposal and valid example values.
 <i>Accept All Valid</i> takes every proposal without a red mark.</td></tr>
 <tr><td class="k">Result</td><td>New patterns with the next free PatternIds, the example values from the fields, the
-drawing proportions and a link to their PDF region. One step, Ctrl+Z removes all of them again.
+drawing proportions and a link to their PDF region - but <b>no name</b> yet: name each one in the editor before
+verifying. One step, Ctrl+Z removes all of them again.
 <i>Discard</i> drops checked proposals.</td></tr>
 </table>
 <p>Colours: green = fine, yellow = uncertain (drawn sizes differ, orientation not readable, cases separated by
@@ -141,8 +145,8 @@ editable even when the PDF is missing.</td></tr>
 
 <!-- ======================================================================= -->
 <a name="patterns"></a><h2>Pattern list and pattern commands</h2>
-<p>Each row shows the preview, PatternId, number of packages, a shield when verified, and a badge:
-DUPLICATE, ID TWICE, INVALID (red) or MIRROR (amber). Hover a row for a large preview.
+<p>Each row shows the preview, PatternId and name, number of packages, a shield when verified, and a badge:
+DUPLICATE, ID TWICE, NAME TWICE, NO NAME, INVALID (red) or MIRROR (amber). Hover a row for a large preview.
 Drag rows to change the list order (it has no effect on the export). The sort button shows the list
 by PatternId for a moment. Right-click for the pattern commands.</p>
 <table class="ref">
@@ -150,11 +154,15 @@ by PatternId for a moment. Right-click for the pattern commands.</p>
 the default example values (Options); the Add Package tool starts right away.</td></tr>
 <tr><td><b>Delete Pattern</b></td><td>Asks first; a stronger warning for verified or DB-imported patterns, because
 the PLC may use that PatternId. Undoable. Later patterns keep their IDs.</td></tr>
+<tr><td><b>Name</b></td><td><i>Properties</i>, field <i>Name</i>: the name the MFC sends for this pattern, e.g.
+<code>EU13</code>. The PLC selects the pattern by it. Required, unique (upper/lower case counts as the same), up to 16
+characters: letters, digits, spaces and <code>- _ . / + #</code>. Enter or leaving the field applies it; a refused
+name is explained in the status line. <b>Resets the verification.</b></td></tr>
 <tr><td><b>Change ID</b></td><td>1..99, not used by another pattern. Warns about PLC references and
 <b>resets the verification</b>.</td></tr>
 <tr><td><b>Rotate Pattern</b></td><td>Menu: <i>Rotated copy</i> 90°/180°/270° (safer: new pattern with a new ID) or
-rotate in place. The sequence is kept, orientations follow. A rotated copy identical to an existing pattern is
-reported (and blocked as a duplicate).</td></tr>
+rotate in place. Orientations follow. A rotated copy needs a name of its own; one identical to an existing
+pattern is reported (and blocked as a duplicate).</td></tr>
 </table>
 
 <!-- ======================================================================= -->
@@ -167,20 +175,20 @@ Esc clears.</td></tr>
 <tr><td><b>Move</b></td><td>Drag a package (or the selection). It snaps to symbolic relations
 (<a href="#snapping">Snapping</a>); release always lands on an exact relation. One undo step.</td></tr>
 <tr><td><b>Add Package</b></td><td><i>Package</i> group. The package follows the cursor, R turns it, click places
-it at the end of the sequence; the tool stays on until Esc. The first package of an empty pattern sits at
-the origin.</td></tr>
+it; the tool stays on until Esc. The first package of an empty pattern sits at the origin.</td></tr>
 <tr><td><b>Duplicate</b> Ctrl+D</td><td>Needs a selection. The copies follow the cursor; click places them once.</td></tr>
 <tr><td><b>Rotate</b> R</td><td>Needs a selection. 0° &harr; 90° about the centre, then snapped again so it does not float.</td></tr>
-<tr><td><b>Delete</b> Del</td><td>Needs a selection. No question - Undo is the safety net. The sequence closes up.</td></tr>
+<tr><td><b>Delete</b> Del</td><td>Needs a selection. No question - Undo is the safety net.</td></tr>
 <tr><td><b>Undo / Redo</b></td><td>Ctrl+Z / Ctrl+Y for everything that changes the project, including accepted
 proposals and example values.</td></tr>
-<tr><td><b>Context menu</b></td><td>Right-click in the drawing for the package, sequence and view commands.</td></tr>
+<tr><td><b>Context menu</b></td><td>Right-click in the drawing for the package and view commands.</td></tr>
 </table>
 <h3>What the drawing shows</h3>
-<p>Packages with their sequence number and a thin line along KL (the BaseOrientation), the pallet below,
-the pattern centre (= pallet centre), the pattern size (below and left) and the pallet size (above and right).
-For one selected package: its size, its centre relative to the pattern centre (X and Y) and the gaps D to its
-neighbours. <i>Properties &gt; Display</i> switches pallet, sequence numbers, orientation lines, snap guides, package
+<p>Packages with a thin line along KL (the BaseOrientation) - deliberately without numbers, see
+<a href="#order">Placement order</a> -, the pallet centred below the pattern, the <b>reference point</b> (circle with
+cross at the lower-left corner of the pattern outline), the pattern size (below and left) and the pallet size
+(above and right). For one selected package: its size, its centre measured from the reference point (X and Y) and
+the gaps D to its neighbours. <i>Properties &gt; Display</i> switches pallet, orientation lines, snap guides, package
 centres, bounding box and overhang, and <b>Symbolic / Numeric</b> (also <i>View &gt; Numeric</i>): KL/KB/D
 expressions or millimetres for the current example values. Red hatching marks packages that overlap, are closer
 than D, or are not connected.</p>
@@ -197,15 +205,13 @@ than D, or are not connected.</p>
 is outlined; on release the nearest relation is applied exactly. If several land on the same spot, the
 simplest wins. Gaps other than one D cannot be created.</p>
 
-<a name="sequence"></a><h2>Placement sequence</h2>
-<table class="ref">
-<tr><td><b>Auto Order</b></td><td><i>Sequence</i> group or Sequence tab: rows from bottom to top, each left to right.</td></tr>
-<tr><td><b>Drag and drop</b></td><td>Sequence tab on the right: drag rows to a new position.</td></tr>
-<tr><td><b>Click Order</b></td><td>Click the packages in the wanted order; it finishes after the last one (Enter
-finishes early, the rest keep their order). Esc restores the previous sequence. One undo step.</td></tr>
-</table>
-<p>Moving a package never changes its number. Numbers are always 1..n without gaps or duplicates.
-A changed sequence resets the verification.</p>
+<a name="order"></a><h2>Placement order</h2>
+<p>LayerForge does <b>not</b> define the order in which packages are placed. The right order depends on where the
+pallet stands relative to the pickup point of the machine, which only the PLC knows: it places the package
+farthest from the pickup point first and approaches each one on the straight line from the pickup point. The
+same pattern is therefore placed in a different order on a pallet left of the pickup than on one to the right.</p>
+<p>That is why packages carry no numbers anywhere in this tool. In the export the packages of a pattern appear in
+an automatic order (rows from bottom to top, each left to right) that has no meaning for the PLC.</p>
 
 <!-- ======================================================================= -->
 <a name="values"></a><h2>Example values (KL, KB, D, pallet)</h2>
@@ -257,18 +263,20 @@ Enter the intended real KL, KB and D first.</td></tr>
 </table>
 <p><b>Blocking problems</b> (red): no packages; more than the maximum (Options, default 64); overlapping packages;
 a gap smaller than D between facing packages; packages not connected to the rest (corner contact does not count);
-coefficients that are not multiples of 1/16; a PatternId used twice; an identical pattern elsewhere.</p>
+coefficients that are not multiples of 1/16; a PatternId used twice; an identical pattern elsewhere; no name, a
+name with other characters or longer than 16, or a name used twice.</p>
 <p><b>Notes</b> (amber, do not block): KL = KB (orientation exported as 0), mirror image of another pattern,
 "verify again" after example values changed the coefficients.</p>
 <p><b>Verification is reset</b> by any change to what is exported: package position, orientation, adding or
-deleting packages, the sequence, the PatternId. It is kept for example values, pallet, view settings and PDF links.</p>
-<p><b>Coefficients valid while</b>: where the outline is not a rectangle, the pattern centre depends on the sizes.
-The condition shown (e.g. <i>2·KB + D &ge; KL</i>) is where the exported coefficients hold; it is also in the Excel
-export.</p>
+deleting packages, the name, the PatternId. It is kept for example values, pallet, view settings and PDF links.</p>
+<p><b>Coefficients valid while</b>: the coefficients are measured from the lower-left corner of the outline. Where
+packages of different orientation form that corner, which one reaches lowest or furthest left depends on the
+sizes. The condition shown (e.g. <i>2·KB + D &ge; KL</i>) is where the exported coefficients hold; it is also in the
+Excel export. The right and top edges never matter: the PLC computes the outline itself.</p>
 
 <a name="duplicates"></a><h2>Duplicates and mirror images</h2>
 <p><b>Duplicate</b>: same packages at the same relative places with the same orientations - wherever they lie and
-whatever their sequence. Blocks verification and export until one of them is changed or deleted.
+in whatever order they were added. Blocks verification and export until one of them is changed or deleted.
 <b>Mirror image</b> (left-right or top-bottom): reported, allowed. A rotated pattern is a different pattern.</p>
 
 <!-- ======================================================================= -->
@@ -284,21 +292,23 @@ and checked in a temporary folder; only then they replace the old ones. If anyth
 and the Siemens names (set in Options).</p>
 <h3>Excel: <code>&lt;prefix&gt;_Patterns.xlsx</code></h3>
 <table class="ref">
-<tr><td><b>Patterns</b></td><td>One row per pattern: <i>PatternId</i>, <i>FirstPackageIndex</i> and
+<tr><td><b>Patterns</b></td><td>One row per pattern: <i>PatternId</i>, <i>Name</i>, <i>FirstPackageIndex</i> and
 <i>PackageCount</i> (the same as <code>PatternIndex[PatternId]</code> in the DB - use it to compare TIA watch tables
 with Excel), <i>Width</i> and <i>Height</i> of the outline as formulas (e.g. <code>3*KL + 2*D</code>, useful for
 overhang checks in the PLC) and <i>ValidWhile</i> (the condition above, or "always").</td></tr>
-<tr><td><b>Packages</b></td><td><i>GlobalPackageIndex</i>, <i>PatternId</i>, <i>Sequence</i>, <i>BaseOrientation</i>,
-the six coefficients and the readable X/Y formulas. Sorted by PatternId and sequence; patterns alternate in shade.</td></tr>
+<tr><td><b>Packages</b></td><td><i>GlobalPackageIndex</i>, <i>PatternId</i>, <i>BaseOrientation</i>,
+the six coefficients and the readable X/Y formulas. Sorted by PatternId, inside a pattern in the automatic order
+(not a placement order); patterns alternate in shade.</td></tr>
 </table>
 <h3>TIA Portal V21: <code>&lt;prefix&gt;_Types.udt</code> and <code>&lt;prefix&gt;_Patterns.db</code></h3>
 <p>Always both together. Import them as external sources, <b>types first</b>, then
 <i>Generate blocks from source</i>. Plain ASCII, generated header with tool, format version and date.</p>
-<p><code>PatternIndex[1..99]</code>: entry = PatternId; <code>0/0</code> = no pattern.
-<code>Package[1..n]</code>: all packages, by PatternId and sequence.
-A package is <code>Package[PatternIndex[id].FirstPackageIndex + Sequence - 1]</code>.
+<p><code>PatternIndex[1..99]</code>: entry = PatternId with <i>Name</i>, <i>FirstPackageIndex</i> and
+<i>PackageCount</i>; <code>''/0/0</code> = no pattern. The PLC finds the pattern by the name the MFC sends.
+<code>Package[1..n]</code>: all packages, by PatternId. The packages of a pattern are
+<code>Package[FirstPackageIndex .. FirstPackageIndex + PackageCount - 1]</code>, in no particular order.
 <b>Global package indices are not stable</b> - deleting or adding a pattern compacts the array. PLC logic must
-always address packages by PatternId and Sequence.</p>
+always look the pattern up again.</p>
 
 <a name="options"></a><h2>Options</h2>
 <table class="how">
@@ -327,9 +337,8 @@ always address packages by PatternId and Sequence.</p>
 <tr><td>R</td><td>Rotate selected packages, or the package being placed</td></tr>
 <tr><td>Delete</td><td>Delete selected packages</td></tr>
 <tr><td>Ctrl+D</td><td>Duplicate and place</td></tr>
-<tr><td>Enter</td><td>Finish a click order</td></tr>
 <tr><td>Ctrl+Enter</td><td>Verify the current pattern</td></tr>
-<tr><td>Esc</td><td>Leave the tool, cancel a drag or click order; in the PDF tab stop recognition / region tool</td></tr>
+<tr><td>Esc</td><td>Leave the tool, cancel a drag; in the PDF tab stop recognition / region tool</td></tr>
 </table>
 <p>Single-key shortcuts work in the drawing, not while typing in a field.</p>
 
@@ -340,7 +349,7 @@ information for unexpected errors. No log files are written.</td></tr>
 <tr><td><b>Proposals</b></td><td>Green = fine, yellow = uncertain, red = incomplete. Dashed packages are the
 uncertain ones.</td></tr>
 <tr><td><b>Drawing</b></td><td>Blue outline = selected, red hatching = problem, turquoise = snap guide and reference.</td></tr>
-<tr><td><b>Pattern list</b></td><td>Green shield = verified; DUPLICATE / ID TWICE / INVALID = blocking; MIRROR = note.</td></tr>
+<tr><td><b>Pattern list</b></td><td>Green shield = verified; DUPLICATE / ID TWICE / NAME TWICE / NO NAME / INVALID = blocking; MIRROR = note.</td></tr>
 </table>
 
 <a name="concepts"></a><h2>Concepts and formulas</h2>
@@ -348,12 +357,16 @@ uncertain ones.</td></tr>
 <tr><td><b>KL, KB, D</b></td><td>Case length, case width (KL &ge; KB), safety gap. Neighbours have exactly one D.</td></tr>
 <tr><td><b>BaseOrientation</b></td><td>0 = KL along pattern X, 90 = KL along pattern Y. The PLC combines it with the
 label scan; that is outside this tool.</td></tr>
-<tr><td><b>Coordinates</b></td><td>X to the right, Y upwards. Reference point: centre of the bounding box over all
-package edges (not the area centroid; holes do not matter). The pallet is centred on it.</td></tr>
-<tr><td><b>Formulas</b></td><td><code>RelativeCenterX = KxL*KL + KxB*KB + KxD*D</code><br>
-<code>RelativeCenterY = KyL*KL + KyB*KB + KyD*D</code><br>
-<code>PackageCenter = PalletCenter + RelativeCenter</code> (in the PLC)</td></tr>
-<tr><td><b>Coefficients</b></td><td>Exact multiples of 1/16 (0.25, -0.5, 1.0 ...), so they are exact as REAL.</td></tr>
+<tr><td><b>Coordinates</b></td><td>X to the right, Y upwards. Reference point: lower-left corner of the bounding box
+over all package edges. The pallet is centred under the pattern, as the PLC places the layer.</td></tr>
+<tr><td><b>Formulas</b></td><td><code>X = KxL*KL + KxB*KB + KxD*D</code><br>
+<code>Y = KyL*KL + KyB*KB + KyD*D</code><br>
+<code>PackageCentre = LayerCorner + (X, Y)</code> (in the PLC, which computes the outline and centres the layer
+on the pallet)</td></tr>
+<tr><td><b>Coefficients</b></td><td>Exact multiples of 1/16 (0.5, -0.5, 1.0 ...), so they are exact as REAL. The positions
+are never negative, a single coefficient can be (e.g. <code>Y = -0.5*KL + 2*KB + D</code>).</td></tr>
+<tr><td><b>Name</b></td><td>The key between MFC and PLC: the MFC sends it, the PLC searches <code>PatternIndex[].Name</code>.
+The PatternId is only the slot in the DB.</td></tr>
 <tr><td><b>Limits</b></td><td>A pattern is checked for the example values entered in the tool, not for every case size.
 Before the PLC uses other sizes, check them in the tool (and mind <i>Coefficients valid while</i>).</td></tr>
 </table>
@@ -363,8 +376,8 @@ Before the PLC uses other sizes, check them in the tool (and mind <i>Coefficient
 <p>At least one pattern is invalid or not verified (or the project is empty). Hover <i>Export</i> - the tooltip
 lists the PatternIds. Verify each of them (green shield in the list).</p>
 <h3>Why can I not verify?</h3>
-<p>The pattern has a red problem in <i>Properties</i>, or it is verified already. Typical: packages closer than D,
-a package not touching the rest, or an identical pattern elsewhere.</p>
+<p>The pattern has a red problem in <i>Properties</i>, or it is verified already. Typical: no name yet, packages
+closer than D, a package not touching the rest, or an identical pattern elsewhere.</p>
 <h3>The pattern looks different from the PDF.</h3>
 <p>PDF layer drawings are rarely to scale - the same case is often drawn with different proportions standing and
 lying. The editor is to scale for the entered KL, KB and D. Use <a href="#fit">Fit to pallet</a> or enter the real

@@ -10,10 +10,10 @@ from dataclasses import dataclass, field
 
 from . import rational
 from .duplicates import compare
-from .export_model import fingerprint, package_rows
+from .export_model import fingerprint, pattern_name_problem
 from .geometry import (
-    Condition, clearance_pairs, components, neighbour_pairs, overlapping_pairs, rects,
-    validity_conditions
+    Condition, clearance_pairs, components, corner_relative, neighbour_pairs, overlapping_pairs,
+    rects, validity_conditions
 )
 from .model import MAX_PATTERN_ID, MIN_PATTERN_ID, ORIENTATIONS, Pattern, Project
 
@@ -29,6 +29,9 @@ NOT_REPRESENTABLE = "not-representable"
 ID_RANGE = "id-range"
 DUPLICATE_ID = "duplicate-id"
 DUPLICATE_GEOMETRY = "duplicate-geometry"
+NAME_MISSING = "name-missing"
+NAME_INVALID = "name-invalid"
+DUPLICATE_NAME = "duplicate-name"
 # Notes
 SQUARE_PACKAGE = "square-package"
 MIRROR_SIMILAR = "mirror-similar"
@@ -65,16 +68,31 @@ class PatternReport:
         return any(issue.code == code for issue in self.issues)
 
 
-def _numbers(indexes) -> str:
-    return ", ".join(f"#{i + 1}" for i in sorted(indexes))
+def _count(indexes) -> str:
+    """Package numbers are never shown (they would look like a placement order); the
+    editor marks the packages concerned in red instead."""
+    n = len(set(indexes))
+    return "1 package" if n == 1 else f"{n} packages"
 
 
-def check_pattern(pattern: Pattern, max_packages: int) -> PatternReport:
-    """Checks that only need the pattern itself."""
+def _name_issues(name: str) -> list[Issue]:
+    if not name:
+        return [Issue(NAME_MISSING, "The pattern has no name (the MFC selects patterns by name).", True)]
+    problem = pattern_name_problem(name)
+    return [Issue(NAME_INVALID, problem, True)] if problem else []
+
+
+def check_pattern(pattern: Pattern, max_packages: int, require_name: bool = True) -> PatternReport:
+    """Checks that only need the pattern itself.
+
+    `require_name=False` checks the geometry alone (recognition, Fit to pallet).
+    """
     issues: list[Issue] = []
     if not MIN_PATTERN_ID <= pattern.pattern_id <= MAX_PATTERN_ID:
         issues.append(Issue(ID_RANGE, f"PatternId must be between {MIN_PATTERN_ID} and "
                                       f"{MAX_PATTERN_ID}.", True))
+    if require_name:
+        issues.extend(_name_issues(pattern.name))
     problems = pattern.dims.problems()
     if problems:
         issues.append(Issue(INVALID_DIMENSIONS, " ".join(problems), True))
@@ -88,40 +106,40 @@ def check_pattern(pattern: Pattern, max_packages: int) -> PatternReport:
                                       f"{max_packages}.", True))
     bad = [i for i, p in enumerate(packages) if p.orientation not in ORIENTATIONS]
     if bad:
-        issues.append(Issue(BAD_ORIENTATION, f"Invalid BaseOrientation at {_numbers(bad)}.", True,
+        issues.append(Issue(BAD_ORIENTATION, f"Invalid BaseOrientation at {_count(bad)}.", True,
                             tuple(bad)))
         return PatternReport(tuple(issues))
 
     try:
         boxes = rects(packages, pattern.dims)
-        rows = package_rows(pattern)
+        positions = corner_relative(packages, pattern.dims)
     except ValueError:
         issues.append(Issue(NOT_REPRESENTABLE, "A package position is not an exact multiple "
                                                "of 1/16 KL, KB or D.", True))
         return PatternReport(tuple(issues))
 
-    odd = [i for i, (_o, x, y) in enumerate(rows)
+    odd = [i for i, (x, y) in enumerate(positions)
            if not all(rational.is_representable(c) for c in x.coefficients() + y.coefficients())]
     if odd:
-        issues.append(Issue(NOT_REPRESENTABLE, f"Coefficients of {_numbers(odd)} cannot be "
+        issues.append(Issue(NOT_REPRESENTABLE, f"The coefficients of {_count(odd)} cannot be "
                                                f"exported exactly.", True, tuple(odd)))
 
     overlaps = overlapping_pairs(boxes)
     if overlaps:
         involved = {k for pair in overlaps for k in pair}
-        issues.append(Issue(OVERLAP, f"Packages overlap: {_numbers(involved)}.", True,
+        issues.append(Issue(OVERLAP, f"{_count(involved)} overlap (marked in red).", True,
                             tuple(sorted(involved))))
     close = clearance_pairs(boxes, pattern.dims)
     if close:
         involved = {k for pair in close for k in pair}
-        issues.append(Issue(CLEARANCE, f"Gap smaller than D between {_numbers(involved)}.", True,
-                            tuple(sorted(involved))))
+        issues.append(Issue(CLEARANCE, f"Gap smaller than D at {_count(involved)} (marked in red).",
+                            True, tuple(sorted(involved))))
     groups = components(len(packages), neighbour_pairs(boxes, pattern.dims))
     if len(groups) > 1:
         main = max(groups, key=len)
         loose = sorted(k for g in groups if g is not main for k in g)
-        issues.append(Issue(DISCONNECTED, f"Not connected to the rest of the pattern: "
-                                          f"{_numbers(loose)}.", True, tuple(loose)))
+        issues.append(Issue(DISCONNECTED, f"{_count(loose)} not connected to the rest of the "
+                                          f"pattern (marked in red).", True, tuple(loose)))
 
     if pattern.dims.kl == pattern.dims.kb:
         issues.append(Issue(SQUARE_PACKAGE, "KL equals KB: the orientation is geometrically "
@@ -139,6 +157,10 @@ def check_project(project: Project, max_packages: int) -> dict[int, PatternRepor
     by_id: dict[int, list[int]] = {}
     for p in project.patterns:
         by_id.setdefault(p.pattern_id, []).append(p.uid)
+    by_name: dict[str, list[int]] = {}
+    for p in project.patterns:
+        if p.name:
+            by_name.setdefault(p.name.casefold(), []).append(p.uid)
     # Only patterns whose coefficients can be computed take part in the comparison.
     unusable = (INVALID_DIMENSIONS, EMPTY, BAD_ORIENTATION, NOT_REPRESENTABLE)
     candidates = [p for p in project.patterns
@@ -152,6 +174,11 @@ def check_project(project: Project, max_packages: int) -> dict[int, PatternRepor
         if same_id:
             extra.append(Issue(DUPLICATE_ID, f"PatternId {p.pattern_id} is used more than once.",
                                True, patterns=tuple(same_id)))
+        same_name_uids = [u for u in by_name.get(p.name.casefold(), []) if u != p.uid] if p.name else []
+        if same_name_uids:
+            extra.append(Issue(DUPLICATE_NAME, f"The name '{p.name}' is also used by pattern "
+                               + ", ".join(str(ids[u]) for u in same_name_uids) + ".", True,
+                               patterns=tuple(same_name_uids)))
         if p.uid in duplicates:
             others = duplicates[p.uid]
             extra.append(Issue(DUPLICATE_GEOMETRY, "Identical geometry to pattern "

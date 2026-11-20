@@ -21,12 +21,12 @@ GOLDEN_GENERATOR = "LayerForge 1.0"
 
 
 def golden_project() -> Project:
-    """IDs with gaps, mixed orientations and a quarter coefficient."""
+    """IDs with gaps, mixed orientations, a negative coefficient (EU13) and a brick bond."""
     project = Project(name="Golden Test – Kave")
-    project, _ = ops.add_pattern(project, grid(1, 1), pattern_id=1)
-    project, _ = ops.add_pattern(project, eu13(), pattern_id=3)
-    brick = (pkg(KL * H, KB * H), pkg(KL, KB * 3 * H))
-    project, _ = ops.add_pattern(project, brick, pattern_id=7, dims=Dimensions(d=0))
+    project, _ = ops.add_pattern(project, grid(1, 1), pattern_id=1, name="SINGLE")
+    project, _ = ops.add_pattern(project, eu13(), pattern_id=3, name="EU13")
+    brick = (pkg(KL, KB * 3 * H), pkg(KL * H, KB * H))
+    project, _ = ops.add_pattern(project, brick, pattern_id=7, dims=Dimensions(d=0), name="BRICK 7")
     return project
 
 
@@ -95,21 +95,23 @@ def test_excel_structure_and_values(tmp_path):
     patterns, packages = wb["Patterns"], wb["Packages"]
     assert [c.value for c in patterns[1]] == excel_export.PATTERN_HEADERS
     assert [[c.value for c in row] for row in patterns.iter_rows(min_row=2)] == [
-        [1, 1, 1, "KL", "KB", "always"],
-        [3, 2, 3, "KL + KB + D", "2*KB + D", "2*KB + D >= KL"],      # EU13
-        [7, 5, 2, "1.5*KL", "2*KB", "always"],                      # brick bond
+        [1, "SINGLE", 1, 1, "KL", "KB", "always"],
+        [3, "EU13", 2, 3, "KL + KB + D", "2*KB + D", "2*KB + D >= KL"],
+        [7, "BRICK 7", 5, 2, "1.5*KL", "2*KB", "always"],
     ]
     assert patterns.freeze_panes == "A2" and packages.freeze_panes == "A2"
     assert "Patterns" in patterns.tables and "Packages" in packages.tables
-    # Package 4 = third package of EU13: standing, X = 0.5*KL + 0.5*D, Y = -0.5*KL + KB + 0.5*D
-    row = [c.value for c in packages[5]]
-    assert row[:4] == [4, 3, 3, 90]
-    assert row[4:10] == [0.5, 0.0, 0.5, -0.5, 1.0, 0.5]
+    # Package 3 = second row of EU13 (automatic order): the standing one,
+    # X = KL + 0.5*KB + D, Y = -0.5*KL + 2*KB + D from the lower-left corner.
+    row = [c.value for c in packages[4]]
+    assert row[:3] == [3, 3, 90]
+    assert row[3:9] == [1.0, 0.5, 1.0, -0.5, 2.0, 1.0]
     # Numeric cells (openpyxl reads a stored 0.0 back as int 0 - Excel has one number type).
-    assert all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in row[4:10])
-    assert all(packages.cell(5, col).number_format == "0.0###" for col in range(5, 11))
-    assert row[10:] == ["0.5*KL + 0.5*D", "-0.5*KL + KB + 0.5*D"]
-    assert packages.cell(6, 5).value == -0.25 and packages.cell(6, 5).number_format == "0.0###"
+    assert all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in row[3:9])
+    assert all(packages.cell(4, col).number_format == "0.0###" for col in range(4, 10))
+    assert row[9:] == ["KL + 0.5*KB + D", "-0.5*KL + 2*KB + D"]
+    # Brick bond: the lower package comes first although it was added second.
+    assert [packages.cell(r, 4).value for r in (6, 7)] == [0.5, 1.0]
 
 
 # --- TIA ---------------------------------------------------------------------
@@ -140,6 +142,7 @@ def test_db_import_round_trip():
     original = golden_project()
     for a, b in zip(project.patterns[:2], original.patterns[:2]):
         assert package_rows(a) == package_rows(b)
+        assert a.name == b.name
         assert a.origin == Origin.DB_IMPORT and a.verified is None
 
 
@@ -149,6 +152,10 @@ def test_db_import_rejects_foreign_files():
     _types, db = tia_export.render(snapshot())
     with pytest.raises(tia_import.DbImportError, match="version"):
         tia_import.parse(db.replace("LayerPattern-TIA 1", "LayerPattern-TIA 2"))
+    # A DB of an earlier LayerForge (no names, centre reference) is refused.
+    nameless = "\n".join(line.replace("PatternIndex[3].Name := 'EU13'; ", "") for line in db.splitlines())
+    with pytest.raises(tia_import.DbImportError, match="no name"):
+        tia_import.parse(nameless)
     broken = db.replace("Package[5].KyD := ", "Package[5].Kxx := ")
     with pytest.raises(tia_import.DbImportError, match="incomplete"):
         tia_import.parse(broken)

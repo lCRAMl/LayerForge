@@ -292,6 +292,19 @@ class PdfWorkspace(QWidget):
         bold.setBold(True)
         self.caption.setFont(bold)
         column.addWidget(self.caption)
+        # Check boxes decide what Accept and Discard take; these set all of them at once.
+        checks = QHBoxLayout()
+        checks.setSpacing(6)
+        self.select_all = CompactButton("Select all")
+        self.select_all.setToolTip("Check every proposal, including incomplete (red) ones")
+        self.select_all.clicked.connect(lambda: self.set_all_checked(True))
+        self.select_none = CompactButton("Select none")
+        self.select_none.setToolTip("Uncheck every proposal")
+        self.select_none.clicked.connect(lambda: self.set_all_checked(False))
+        checks.addWidget(self.select_all)
+        checks.addWidget(self.select_none)
+        checks.addStretch(1)
+        column.addLayout(checks)
         self.list = QListWidget()
         self.list.setIconSize(QSize(56, 56))
         self.list.setVerticalScrollBar(HaloScrollBar(self.list))
@@ -619,6 +632,16 @@ class PdfWorkspace(QWidget):
             entry.checked = item.checkState() == Qt.CheckState.Checked
         self._update_actions()
 
+    def set_all_checked(self, checked: bool) -> None:
+        for entry in self.entries:
+            entry.checked = checked
+        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        self.list.blockSignals(True)
+        for row in range(self.list.count()):
+            self.list.item(row).setCheckState(state)
+        self.list.blockSignals(False)
+        self._update_actions()
+
     def _refresh_list(self) -> None:
         self.list.blockSignals(True)
         self.list.clear()
@@ -819,6 +842,8 @@ class PdfWorkspace(QWidget):
         self.act_accept.setEnabled(checked and not busy)
         self.act_accept_all.setEnabled(any(e.proposal.level != "error" for e in self.entries) and not busy)
         self.act_discard.setEnabled(checked)
+        self.select_all.setEnabled(any(not e.checked for e in self.entries))
+        self.select_none.setEnabled(checked)
 
     def ribbon_groups(self):
         return (("PDF", ((self.act_import, "large"), (self.act_relink, "small"), (self.act_fit_page, "small"))),

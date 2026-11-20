@@ -131,6 +131,8 @@ def test_export_blockers_list_unverified_patterns():
 
     project, uid = ops.add_pattern(Project(), grid(2, 1), pattern_id=4)
     validator = ProjectValidator(DEFAULT_MAX_PACKAGES)
+    assert validator.export_blockers(project) == ["Invalid patterns: 4."]      # no name yet
+    project = ops.set_name(project, uid, "P4")
     assert validator.export_blockers(project) == ["Not verified: 4."]
     assert validator.export_blockers(ops.verify(project, uid)) == []
     assert validator.export_blockers(Project())

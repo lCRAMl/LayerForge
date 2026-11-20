@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from .export_model import fingerprint
+from .export_model import fingerprint, pattern_name_problem, same_name
 from .model import (
     MAX_PATTERN_ID, MIN_PATTERN_ID, Dimensions, Origin, Package, Pattern, PdfRef, Project,
     SourceRef
@@ -33,16 +33,21 @@ def next_pattern_id(project: Project) -> int | None:
 def add_pattern(project: Project, packages=(), dims: Dimensions | None = None,
                 pattern_id: int | None = None, source: SourceRef | None = None,
                 origin: str = Origin.MANUAL, index: int | None = None,
-                hints=()) -> tuple[Project, int]:
-    """Append (or insert at `index`) a new pattern; returns the project and the new uid."""
+                hints=(), name: str = "") -> tuple[Project, int]:
+    """Append (or insert at `index`) a new pattern; returns the project and the new uid.
+
+    The name may stay empty here: an unnamed pattern is reported as a blocker until the
+    operator names it.
+    """
     if pattern_id is None:
         pattern_id = next_pattern_id(project)
         if pattern_id is None:
             raise OperationError(f"All PatternIds {MIN_PATTERN_ID}..{MAX_PATTERN_ID} are in use.")
     elif any(p.pattern_id == pattern_id for p in project.patterns):
         raise OperationError(f"PatternId {pattern_id} is already in use.")
+    name = _checked_name(project, None, name)
     pattern = Pattern(project.next_uid, pattern_id, tuple(packages), dims or Dimensions(),
-                      None, source, origin, tuple(hints))
+                      None, source, origin, tuple(hints), name)
     patterns = list(project.patterns)
     patterns.insert(len(patterns) if index is None else index, pattern)
     return replace(project, patterns=tuple(patterns), next_uid=project.next_uid + 1), pattern.uid
@@ -64,8 +69,30 @@ def change_pattern_id(project: Project, uid: int, new_id: int) -> Project:
     return project.with_pattern(replace(pattern, pattern_id=new_id, verified=None))
 
 
+def _checked_name(project: Project, uid: int | None, name: str) -> str:
+    """`name` without surrounding spaces; raises if it is malformed or taken by another pattern."""
+    name = name.strip()
+    if name:
+        problem = pattern_name_problem(name)
+        if problem:
+            raise OperationError(problem)
+        taken = next((p for p in project.patterns if p.uid != uid and same_name(p.name, name)), None)
+        if taken is not None:
+            raise OperationError(f"The name '{name}' is already used by pattern {taken.pattern_id}.")
+    return name
+
+
+def set_name(project: Project, uid: int, name: str) -> Project:
+    """The name the MFC sends. The PLC receives it, so verification is dropped."""
+    pattern = project.pattern(uid)
+    name = _checked_name(project, uid, name)
+    if name == pattern.name:
+        return project
+    return project.with_pattern(replace(pattern, name=name, verified=None))
+
+
 def set_packages(project: Project, uid: int, packages) -> Project:
-    """New geometry or sequence; drops verification."""
+    """New geometry; drops verification."""
     return project.with_pattern(project.pattern(uid).with_packages(packages))
 
 

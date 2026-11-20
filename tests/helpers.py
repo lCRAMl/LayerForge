@@ -38,8 +38,11 @@ def eu13() -> tuple[Package, ...]:
     return (a, b, c)
 
 
-def pattern(packages, uid: int = 1, pattern_id: int = 1, dims: Dimensions | None = None) -> Pattern:
-    return Pattern(uid, pattern_id, tuple(packages), dims or Dimensions())
+def pattern(packages, uid: int = 1, pattern_id: int = 1, dims: Dimensions | None = None,
+            name: str | None = None) -> Pattern:
+    """A pattern is only valid with a name; by default it is "P<PatternId>"."""
+    return Pattern(uid, pattern_id, tuple(packages), dims or Dimensions(),
+                   name=f"P{pattern_id}" if name is None else name)
 
 
 def form(l=0, b=0, d=0) -> LinearForm:  # noqa: E741

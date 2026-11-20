@@ -1,14 +1,16 @@
 """Exact duplicates and mirrored similarities between patterns.
 
-Both compare what is exported: the multiset of (BaseOrientation, coefficients)
-relative to the pattern centre. That is translation-independent by construction and
-ignores the placement sequence. A globally rotated pattern differs (other
-coefficients, swapped orientations) and is therefore a separate pattern.
+Both compare the geometry the PLC receives: the multiset of (BaseOrientation,
+centre position). Positions are taken relative to the pattern centre here, not to the
+exported corner, because only the centre frame is symmetric: mirroring is then just a
+change of sign. That is translation-independent by construction and ignores the order
+of the packages. A globally rotated pattern differs (other coefficients, swapped
+orientations) and is therefore a separate pattern.
 """
 
 from __future__ import annotations
 
-from .export_model import package_rows
+from .geometry import centre_relative
 from .model import Pattern
 
 Key = tuple
@@ -18,17 +20,22 @@ def _key(rows) -> Key:
     return tuple(sorted((o, x.coefficients(), y.coefficients()) for o, x, y in rows))
 
 
+def _rows(pattern: Pattern):
+    centres = centre_relative(pattern.packages, pattern.dims)
+    return [(p.orientation, x, y) for p, (x, y) in zip(pattern.packages, centres)]
+
+
 def geometry_key(pattern: Pattern) -> Key | None:
     if not pattern.packages or not pattern.dims.is_valid():
         return None
-    return _key(package_rows(pattern))
+    return _key(_rows(pattern))
 
 
 def mirror_keys(pattern: Pattern) -> tuple[Key, Key] | None:
     """Keys of the pattern mirrored left-right (x -> -x) and top-bottom (y -> -y)."""
     if not pattern.packages or not pattern.dims.is_valid():
         return None
-    rows = package_rows(pattern)
+    rows = _rows(pattern)
     return (_key((o, -x, y) for o, x, y in rows), _key((o, x, -y) for o, x, y in rows))
 
 

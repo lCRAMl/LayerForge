@@ -8,10 +8,12 @@
 // ======================================================================
 // Requires the types "UDT_LayerPackage" and "UDT_LayerPatternIndex".
 //
-// PatternIndex[PatternId] -> FirstPackageIndex, PackageCount (0/0 = no pattern)
-// Package of a pattern:  Package[FirstPackageIndex + Sequence - 1]
-// The flat package array is compacted on every export: reference packages by
-// PatternId and Sequence, never by a stored global package index.
+// PatternIndex[PatternId] -> Name, FirstPackageIndex, PackageCount
+// ('' / 0 / 0 = no pattern). The MFC selects a pattern by its Name.
+// Packages of a pattern: Package[FirstPackageIndex .. FirstPackageIndex + PackageCount - 1]
+// in no particular order - the PLC computes the placement order itself.
+// The flat package array is compacted on every export: never store a global
+// package index, look the pattern up again.
 // ======================================================================
 DATA_BLOCK "DB_LayerPatterns"
 { S7_Optimized_Access := 'TRUE' }
@@ -23,16 +25,16 @@ NON_RETAIN
    END_VAR
 
 BEGIN
-   PatternIndex[1].FirstPackageIndex := 1; PatternIndex[1].PackageCount := 1;
-   PatternIndex[3].FirstPackageIndex := 2; PatternIndex[3].PackageCount := 3;
-   PatternIndex[7].FirstPackageIndex := 5; PatternIndex[7].PackageCount := 2;
+   PatternIndex[1].Name := 'SINGLE'; PatternIndex[1].FirstPackageIndex := 1; PatternIndex[1].PackageCount := 1;
+   PatternIndex[3].Name := 'EU13'; PatternIndex[3].FirstPackageIndex := 2; PatternIndex[3].PackageCount := 3;
+   PatternIndex[7].Name := 'BRICK 7'; PatternIndex[7].FirstPackageIndex := 5; PatternIndex[7].PackageCount := 2;
    // PatternId 1
-   Package[1].BaseOrientation := 0; Package[1].KxL := 0.0; Package[1].KxB := 0.0; Package[1].KxD := 0.0; Package[1].KyL := 0.0; Package[1].KyB := 0.0; Package[1].KyD := 0.0;
+   Package[1].BaseOrientation := 0; Package[1].KxL := 0.5; Package[1].KxB := 0.0; Package[1].KxD := 0.0; Package[1].KyL := 0.0; Package[1].KyB := 0.5; Package[1].KyD := 0.0;
    // PatternId 3
-   Package[2].BaseOrientation := 0; Package[2].KxL := 0.0; Package[2].KxB := -0.5; Package[2].KxD := -0.5; Package[2].KyL := 0.0; Package[2].KyB := -0.5; Package[2].KyD := -0.5;
-   Package[3].BaseOrientation := 0; Package[3].KxL := 0.0; Package[3].KxB := -0.5; Package[3].KxD := -0.5; Package[3].KyL := 0.0; Package[3].KyB := 0.5; Package[3].KyD := 0.5;
-   Package[4].BaseOrientation := 90; Package[4].KxL := 0.5; Package[4].KxB := 0.0; Package[4].KxD := 0.5; Package[4].KyL := -0.5; Package[4].KyB := 1.0; Package[4].KyD := 0.5;
+   Package[2].BaseOrientation := 0; Package[2].KxL := 0.5; Package[2].KxB := 0.0; Package[2].KxD := 0.0; Package[2].KyL := 0.0; Package[2].KyB := 0.5; Package[2].KyD := 0.0;
+   Package[3].BaseOrientation := 90; Package[3].KxL := 1.0; Package[3].KxB := 0.5; Package[3].KxD := 1.0; Package[3].KyL := -0.5; Package[3].KyB := 2.0; Package[3].KyD := 1.0;
+   Package[4].BaseOrientation := 0; Package[4].KxL := 0.5; Package[4].KxB := 0.0; Package[4].KxD := 0.0; Package[4].KyL := 0.0; Package[4].KyB := 1.5; Package[4].KyD := 1.0;
    // PatternId 7
-   Package[5].BaseOrientation := 0; Package[5].KxL := -0.25; Package[5].KxB := 0.0; Package[5].KxD := 0.0; Package[5].KyL := 0.0; Package[5].KyB := -0.5; Package[5].KyD := 0.0;
-   Package[6].BaseOrientation := 0; Package[6].KxL := 0.25; Package[6].KxB := 0.0; Package[6].KxD := 0.0; Package[6].KyL := 0.0; Package[6].KyB := 0.5; Package[6].KyD := 0.0;
+   Package[5].BaseOrientation := 0; Package[5].KxL := 0.5; Package[5].KxB := 0.0; Package[5].KxD := 0.0; Package[5].KyL := 0.0; Package[5].KyB := 0.5; Package[5].KyD := 0.0;
+   Package[6].BaseOrientation := 0; Package[6].KxL := 1.0; Package[6].KxB := 0.0; Package[6].KxD := 0.0; Package[6].KyL := 0.0; Package[6].KyB := 1.5; Package[6].KyD := 0.0;
 END_DATA_BLOCK

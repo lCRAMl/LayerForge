@@ -6,7 +6,11 @@ matter of keeping the previous `Project` and lets views detect changes by identi
 Pattern coordinates: X to the right, Y upwards. A package position is the centre
 of the package as a `LinearForm`; the origin is arbitrary (normally the lower-left
 corner of the pattern's bounding box). Exported coefficients are always taken
-relative to the bounding-box centre, so the origin never leaks into the PLC data.
+relative to the lower-left corner of the bounding box, so the stored origin never
+leaks into the PLC data.
+
+The order of `Pattern.packages` has no meaning: the PLC computes the placement order
+itself (it depends on where the pallet stands relative to the pickup point).
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ ORIENTATIONS = (0, 90)       # 0: KL along X, 90: KL along Y
 MIN_PATTERN_ID = 1
 MAX_PATTERN_ID = 99
 DEFAULT_MAX_PACKAGES = 64
+NAME_LENGTH = 16             # String[16] in the PLC; the MFC sends this name
 
 
 class Origin:
@@ -101,7 +106,7 @@ class SourceRef:
 class Pattern:
     uid: int                                  # internal identity; survives PatternId changes
     pattern_id: int
-    packages: tuple[Package, ...] = ()       # order == placement sequence
+    packages: tuple[Package, ...] = ()       # order has no meaning (see module doc)
     dims: Dimensions = field(default_factory=Dimensions)
     verified: str | None = None              # fingerprint of the exported data when verified
     source: SourceRef | None = None
@@ -109,9 +114,11 @@ class Pattern:
     # Proportions the source drawing implies (KL/KB only, each "form = 0"). Project-only:
     # used by Fit to pallet, never exported, not part of the verification fingerprint.
     hints: tuple[LinearForm, ...] = ()
+    # The name the MFC sends for this pattern, e.g. "EU13"; the PLC looks it up.
+    name: str = ""
 
     def with_packages(self, packages) -> Pattern:
-        """New geometry or sequence. Changes exported data, so verification is dropped."""
+        """New geometry. Changes exported data, so verification is dropped."""
         return replace(self, packages=tuple(packages), verified=None)
 
 

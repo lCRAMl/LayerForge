@@ -7,18 +7,18 @@ from helpers import H, KB, KL, eu13, form, grid, pattern, pkg
 from layerforge.domain import operations as ops
 from layerforge.domain import validation as v
 from layerforge.domain.duplicates import compare
-from layerforge.domain.export_model import (
-    TiaNames, build_snapshot, fingerprint, is_verified, package_rows
-)
+from layerforge.domain.export_model import TiaNames, build_snapshot, fingerprint, is_verified
+from layerforge.domain.geometry import centre_relative
 from layerforge.domain.model import DEFAULT_MAX_PACKAGES, Dimensions, Project
-from layerforge.domain.sequence import auto_order, moved, reordered
+from layerforge.domain.sequence import auto_order
 from layerforge.domain.transform import rotate_packages
 
 DIMS = Dimensions()
 
 
 def coeffs(packages):
-    return [(o, x, y) for o, x, y in package_rows(pattern(packages))]
+    """Centre-relative rows in stored order: the frame in which a rotation is a rotation."""
+    return [(p.orientation, x, y) for p, (x, y) in zip(packages, centre_relative(packages, DIMS))]
 
 
 # --- rotation ----------------------------------------------------------------
@@ -40,19 +40,19 @@ def test_half_and_three_quarter_turns():
         assert (x3, y3) == (y0, -x0) and o3 != o0
 
 
-def test_four_quarter_turns_are_identity_and_sequence_is_kept():
+def test_four_quarter_turns_are_identity_and_order_is_kept():
     packages = eu13()
     turned = packages
     for _ in range(4):
         turned = rotate_packages(turned, 1, DIMS)
     assert coeffs(turned) == coeffs(packages)
-    # The standing package stays third in the sequence through every rotation.
+    # The standing package stays third in the stored order through every rotation.
     assert [o for o, *_ in coeffs(rotate_packages(packages, 2, DIMS))] == [0, 0, 90]
 
 
 # --- duplicates and mirrors --------------------------------------------------
 
-def test_duplicate_independent_of_sequence():
+def test_duplicate_independent_of_package_order():
     a = pattern(eu13(), uid=1, pattern_id=1)
     b = pattern(tuple(reversed(eu13())), uid=2, pattern_id=2)
     duplicates, similar = compare([a, b])
@@ -103,11 +103,11 @@ def test_duplicate_pattern_id_is_blocking():
     assert reports[1].has(v.DUPLICATE_ID) and reports[2].has(v.DUPLICATE_ID)
 
 
-# --- sequence ----------------------------------------------------------------
+# --- package order -----------------------------------------------------------
 
 def test_auto_order_rows_bottom_up_left_to_right():
     packages = grid(3, 2)
-    shuffled = reordered(packages, [5, 2, 0, 4, 1, 3])
+    shuffled = tuple(packages[i] for i in (5, 2, 0, 4, 1, 3))
     assert auto_order(shuffled, DIMS) == packages
 
 
@@ -117,17 +117,51 @@ def test_auto_order_eu13():
     assert auto_order((c, b, a), DIMS) == (a, c, b)
 
 
-def test_sequence_moves_and_reorder_validation():
-    packages = grid(3, 1)
-    assert moved(packages, 0, 2) == (packages[1], packages[2], packages[0])
-    with pytest.raises(ValueError):
-        reordered(packages, [0, 0, 1])
-
-
-def test_sequence_is_part_of_the_fingerprint():
+def test_package_order_is_not_part_of_the_fingerprint():
+    # The PLC computes the placement order; the stored order means nothing.
     p = pattern(grid(2, 1))
-    swapped = p.with_packages(reordered(p.packages, [1, 0]))
-    assert fingerprint(p) != fingerprint(swapped)
+    swapped = p.with_packages(tuple(reversed(p.packages)))
+    assert fingerprint(p) == fingerprint(swapped)
+
+
+# --- pattern names -----------------------------------------------------------
+
+def test_name_is_part_of_the_fingerprint():
+    assert fingerprint(pattern(grid(2, 1), name="A")) != fingerprint(pattern(grid(2, 1), name="B"))
+
+
+def test_name_rules():
+    project, a = ops.add_pattern(Project(), grid(1, 1), pattern_id=1, name="EU13")
+    project, b = ops.add_pattern(project, grid(2, 1), pattern_id=2)
+    assert project.pattern(a).name == "EU13" and project.pattern(b).name == ""
+    for bad in ("x" * 17, "it's", "50$", "Ä1", " "):
+        if bad.strip():
+            with pytest.raises(ops.OperationError):
+                ops.set_name(project, b, bad)
+    with pytest.raises(ops.OperationError):
+        ops.set_name(project, b, "eu13")                  # taken, case does not matter
+    with pytest.raises(ops.OperationError):
+        ops.add_pattern(project, grid(1, 2), name="EU13")
+    named = ops.set_name(project, b, "  A-120 / 2  ")
+    assert named.pattern(b).name == "A-120 / 2"
+    assert ops.set_name(named, b, "A-120 / 2") is named   # unchanged: no undo step
+
+
+def test_renaming_drops_verification():
+    project, uid = ops.add_pattern(Project(), grid(2, 2), name="A")
+    project = ops.verify(project, uid)
+    assert is_verified(project.pattern(uid))
+    assert not is_verified(ops.set_name(project, uid, "B").pattern(uid))
+
+
+def test_missing_and_duplicate_names_block():
+    project = Project(patterns=(pattern(grid(2, 1), uid=1, pattern_id=1, name=""),
+                                pattern(grid(1, 2), uid=2, pattern_id=2, name="X1"),
+                                pattern(grid(3, 1), uid=3, pattern_id=3, name="x1")))
+    reports = v.check_project(project, DEFAULT_MAX_PACKAGES)
+    assert reports[1].has(v.NAME_MISSING) and not reports[1].valid
+    assert reports[2].has(v.DUPLICATE_NAME) and reports[3].has(v.DUPLICATE_NAME)
+    assert v.check_pattern(pattern(grid(1, 1), name="bad'name"), DEFAULT_MAX_PACKAGES).has(v.NAME_INVALID)
 
 
 # --- project operations ------------------------------------------------------
@@ -176,8 +210,9 @@ def test_rotated_copy_gets_new_id_and_sits_after_original():
     project, copy_uid = ops.rotated_copy(project, uid, 1)
     assert project.pattern(copy_uid).pattern_id == 10
     assert project.index_of(copy_uid) == project.index_of(uid) + 1
+    # The copy needs a name of its own; apart from that it is valid.
     reports = v.check_project(project, DEFAULT_MAX_PACKAGES)
-    assert reports[copy_uid].valid
+    assert [i.code for i in reports[copy_uid].blockers] == [v.NAME_MISSING]
 
 
 def test_list_order_is_independent_of_ids():
@@ -210,14 +245,14 @@ def test_flat_package_list_with_id_gaps():
     assert [(r.pattern_id, r.first_index, r.count) for r in snap.patterns] == \
         [(1, 1, 1), (3, 2, 2), (7, 4, 3)]
     assert [r.global_index for r in snap.packages] == list(range(1, 7))
-    assert [(r.pattern_id, r.sequence) for r in snap.packages] == \
+    assert [(r.pattern_id, r.position) for r in snap.packages] == \
         [(1, 1), (3, 1), (3, 2), (7, 1), (7, 2), (7, 3)]
     table = snap.index_table()
     assert len(table) == 99
     assert table[0] == (1, 1) and table[1] == (0, 0) and table[2] == (2, 2) and table[6] == (4, 3)
-    # Access rule: FirstPackageIndex + Sequence - 1
-    first, _ = table[6]
-    assert snap.packages[first + 2 - 1 - 1].sequence == 2
+    # Packages of a pattern: FirstPackageIndex .. FirstPackageIndex + PackageCount - 1
+    first, count = table[6]
+    assert {r.pattern_id for r in snap.packages[first - 1:first - 1 + count]} == {7}
 
 
 def test_deleting_a_pattern_compacts_the_package_array():
@@ -237,10 +272,13 @@ def test_tia_name_rules():
     assert TiaNames(db="UDT_LayerPackage").problems()
 
 
-def test_quarter_coefficient_survives_into_snapshot():
+def test_snapshot_measures_from_the_lower_left_corner():
     lower = pkg(KL * H, KB * H)
     upper = pkg(KL, KB * 3 * H)                    # touching, D = 0
-    project, uid = ops.add_pattern(Project(), (lower, upper), dims=Dimensions(d=0))
+    project, uid = ops.add_pattern(Project(), (upper, lower), dims=Dimensions(d=0), name="B1")
     assert v.check_pattern(project.pattern(uid), DEFAULT_MAX_PACKAGES).valid
     snap = build_snapshot(project, TiaNames(), datetime(2026, 1, 1))
-    assert snap.packages[0].kx == form(-0.25)
+    assert snap.patterns[0].name == "B1"
+    # Automatic order puts the lower package first.
+    assert (snap.packages[0].kx, snap.packages[0].ky) == (form(H), form(0, H))
+    assert (snap.packages[1].kx, snap.packages[1].ky) == (form(1), form(0, 3 * H))

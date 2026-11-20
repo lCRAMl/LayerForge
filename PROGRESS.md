@@ -64,6 +64,139 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 
 ## Log
 
+### 2026-11-20 – LayerForge step done (160 tests green, source self-test OK)
+- Corner reference: geometry.corner_relative() for the export, centre_relative() only for duplicates and
+  mirror detection; validity conditions left/bottom only; package_rows() uses the automatic order.
+- Pattern name: Pattern.name, ops.set_name / add_pattern(name=) with one checker, validation NAME_MISSING /
+  NAME_INVALID / DUPLICATE_NAME (check_pattern(require_name=False) for recognition and Fit to pallet),
+  fingerprint includes the name, project JSON "name" (optional on read), UDT_LayerPatternIndex.Name
+  String[16], DB assignment, import reads names and refuses DBs without (= earlier exports), Excel Name column.
+- No placement order anywhere: sequence panel, Auto Order, Click Order, Finish Order, ORDER mode, sequence
+  numbers and the Sequence display option removed; Excel without Sequence; verify dialog without Seq;
+  validation messages count packages instead of numbering them.
+- Editor: origin mark at the lower-left pattern corner, pallet stays centred, X/Y legs from the corner;
+  Properties has a Name field; pattern list shows the name and NO NAME / NAME TWICE badges.
+- PDF tab: Select all / Select none above the proposal list (Select all includes red proposals).
+- Help, README, DESIGN updated; goldens regenerated and checked by hand (EU13 standing package
+  Y = -0.5*KL + 2*KB + D: positions are never negative, single coefficients can be - this corrects what I
+  told the user in H3, "all coefficients >= 0").
+- Found by the self-test path: the self-test pattern needed a name (import refuses nameless DBs).
+- Lesson: long Python heredocs through the Bash tool mangle backslashes ("\\n" became a newline in a
+  string literal) - write patch scripts with the Write tool instead.
+
+### 2026-11-20 – V4 decisions final, work started
+- U6 A approved: travel height = highest stack in the cell + carried case height + clearance (min ZTravelMin,
+  max ZMax), plus a config switch between fixed ZMax and the variable height; the behaviour must be
+  described exactly in the documentation. B (blending) not documented.
+- Plan (H14): 1. LayerForge (corner reference, origin mark at the pattern corner with the pallet centred,
+  Select all/none in the PDF tab, pattern name, no package numbers/sequence anywhere, import rejects DBs
+  that do not match), tests, build. 2. V4. 3. Documentation.
+- Decided while implementing: with the corner reference and a PLC that computes the outline itself, the
+  conditions that matter for the coefficients are the left/bottom edges only (H1 as approved). The export
+  order of packages inside a pattern is the automatic order (rows bottom-up, left to right at the example
+  values) and carries no meaning. Validation messages no longer cite package numbers (the editor marks the
+  packages concerned). The fingerprint includes the pattern name (the PLC receives it).
+
+### 2026-11-20 – V4 answers round 5 (nothing changed)
+- U1-U5 approved (pallet per stand, carton orientation at the band, max packages per layer as one bound,
+  telegram Pattern String[16], ScanSide not needed when the label switch is off).
+- New: the documentation gets the MFC interface: every telegram field, what it must contain, what it
+  causes in the PLC, plus example telegrams.
+- U6: the user corrected the earlier statement on travel height: the gantry must travel at ZMax between pickup and place for
+  self-protection, which is pointless when the lift is as long as the horizontal way; no extra check
+  function wanted. Checked (scratch path_cross.py): in the V3 layout the straight line pickup -> place
+  crosses a neighbouring pallet for 8 of 10 stands (1->2, 2->3, 4->3, 5->4, 6->7, 7->8, 9->8, 10->9), so
+  looking only at the target stack is unsafe. Proposal sent: travel height = highest stack in the cell +
+  carried case height + clearance (at least a fixed minimum, at most ZMax), one MAX over the stands per
+  package; option: blending in the motion control.
+
+### 2026-11-20 – V4 answers round 4, review for universal settings (nothing changed)
+- H15 stop side setting yes; H8.2 keep the check with a maximum overhang per side (start 50 mm); H16 (a)
+  stand count only in the three DBs, blocks take Array[*].
+- H7.6b: LayerForge must not show package numbers at all (they would look like a placement order): no
+  sequence overlay, no sequence panel / order mode, Excel loses the Sequence column (GlobalPackageIndex
+  stays for the DB mapping), DB comment says the array order is not the placement order.
+- Review of all V3 sources for values that must become settings (user request). Proposed: pallet size and
+  height per stand (V3 global PB/PL/ZPal), carton orientation at the pickup (V3 assumes KL along the band),
+  max packages per layer as one bound (64 = LayerForge default), telegram Pattern String[8] -> String[16],
+  ScanSide/NoRead handling when the label switch is off. Already settings: XStop, YBand, ZBand, ZMax, SApp,
+  DzApp, ZSafe, DimTol, ScanAIsPlusY, CSign, per stand Fx/Fy/Theta/Gap. Assumptions that are functions, not
+  values (to document as limits): same pattern on every layer, no interlayer sheets, one package per pick
+  gripped at its centre, travel at fixed ZMax, nearest free stand per new order, Theta 0/90/180/270.
+  Test bench arrays (120 telegrams) follow the generator.
+
+### 2026-11-20 – V4 answers round 3 (nothing changed)
+- H7.5 a (simple rule: farthest from the pickup first, line approach, per-package fallback), H7.6 b (no
+  placement order in LayerForge any more: automatic package numbering only, sequence tools removed),
+  H8.3 switch + a documentation chapter listing everything that must / can be set, H8.4 and H9.1 as proposed.
+- New from the user: the pickup point moves along a horizontal line between the pallet rows from project
+  to project. Simulation rerun with XStop 0/1500/4400/6500 and YBand 1900/2700: fallback 1.2-2.5 %, never
+  vertical -> no problem; the pickup is already configuration (XStop, YBand). Open: stop side (V3: pickup =
+  XStop + KL/2, carton's left edge at the stop).
+- H8.2: user wants overhang allowed and asks whether the PLC fit check is needed at all (pattern approved in
+  LayerForge). Answer: LayerForge approves the pattern with example sizes only; the real carton size comes
+  per order from the MFC, so only the PLC can check it. Proposal: keep it (two comparisons, the outline is
+  computed anyway) with a configurable maximum overhang per side.
+- Also found: the stand count 10 is hard-coded in UDTs, DBs and loops of V3 -> question how V4 makes it
+  universal (bound in the DBs + Array[*]/UPPER_BOUND in the blocks recommended).
+
+### 2026-11-20 – V4 answers round 2, order/approach proposal sent (nothing changed)
+- H3: no format bump; the import simply rejects DBs that do not match the V4 structure. Exported values stay
+  as they are (BaseOrientation + 6 coefficients, corner reference) - no width/height/bounding box. The only
+  addition is the pattern name (H6 approved: name field in LayerForge, exported to PatternIndex[].Name).
+  -> The PLC computes the outline itself (MIN/MAX inside the loop that computes the centres anyway).
+- H10 (02_LayerForge) and H13 (cover: only what describes V4; version history stays) approved.
+- H7 clarified by the user: approach on the straight line pickup -> place point (true direction per package,
+  not V3's fixed 45 deg per stand), shortest paths, detours only when a case is in the way; pickup lies
+  between an upper and a lower pallet row, never approach from beyond the outer row. Order must therefore
+  depend on where the pallet stands -> the user asks whether to compute the order in the PLC.
+- Simulation (scratch, V3 patterns, V3 stand layout without margins, D 0/5/20, KL 200-800, KB 150-KL,
+  70870 layers, 249060 packages), rule "farthest from the pickup first", approach SApp 50 on the line,
+  path test = moving box against placed boxes: 97.9 % on the line, 2.1 % need a fallback (drop one
+  component: 3228 x straight on, 2071 along x), never vertical. Fallbacks: stands 3/8 in front of the pickup
+  (all patterns, unavoidable: row neighbours want to come from each other's side) and mixed patterns with
+  a rotated block on all stands. A precedence order ("i before j if j lies in i's path", n^3) removes the
+  mixed-pattern cases; only stands 3/8 remain. Detour of a fallback <= 50*(1-cos 45) ~ 15 mm.
+- Proposal sent: order + approach computed in the PLC once per order (cached), LayerForge sequence becomes a
+  plain package number; open: simple rule vs precedence order, LayerForge numbering kept/renamed or removed,
+  H8.2-8.4 and H9.1 still unanswered.
+
+### 2026-11-20 – V4 answers round 1, follow-up questions sent (nothing changed)
+- Answers: H1 corner reference yes; H2 (b) pallet stays centred in the editor, origin mark moves to the pattern
+  corner; H4, H5, H11, H12 as proposed; H9 the user builds the pattern project and exports it themselves -> write
+  a short guide; H10 no project name in file names; H13 leave out everything that does not describe V4; H14 order
+  as proposed, but only after the open points are settled.
+- Corrections by the user: no backward compatibility needed (development project), LayerForge export and TIA
+  must simply be consistent; V4 must be universal (no project pattern names like EU.., any number of patterns,
+  no "dark" rule); approach direction chosen from pickup point towards the place point; layer centred on the
+  pallet, margins TX/TY removed, Align removed, D = Gap; PLC computes as little as possible; V4 need NOT
+  reproduce V3 (V3 was only the base and must stay untouched).
+- Facts for the follow-up: Pattern has no name field today (only PatternId); export already knows width/height
+  as LinearForm (Excel only). With corner reference + centring, the PLC needs W/H -> right/top validity
+  conditions stay relevant (correction of the H1 claim). Computed approach (sign of pickup - pallet centre) equals
+  the V3 config for 9 of 10 stands; stands 3/8 sit in front of the pickup (X 2900-3700 vs 3000 + KL/2), stand 3
+  flips to -X. Target is S7-1500 -> ARRAY[*] parameters make V4 independent of the export size.
+- Follow-up questions sent: H3 (explained: format 2, old DBs rejected, W/H added), H6 (pattern name in
+  LayerForge exported to PatternIndex[].Name vs MFC sends PatternId), H7.1-7.3 (approach per stand from pickup to
+  pallet centre, generalised rank rule with sx/sy, LayerForge sequence = PkgNo only), H8.1-8.4 (export W/H, fit
+  check without overhang, barcode-outside logic behind a switch, own V4 expectations), H9.1 (temporary export
+  from the V3 geometry until the user's own), H10 base name 02_LayerForge, H13 interpretation.
+
+### 2026-11-20 – Request: pallet reference lower-left, Select all/none, V4 of the PLC project (questions H1-H14 sent, nothing changed)
+- Request: (1) reference point lower-left corner instead of pattern centre, (2) PDF tab proposals Select all /
+  Select none, (3) new folder ../V4 = V3 PLC project (gantry palletizer, TIA V21 SCL) adapted to LayerForge data,
+  V3 untouched, (4) V4 documentation in the look of ../IC-Contractor-Scope-of-Work-11492_WORD_DE.docx.
+- Findings: geometry.relative_centers() is the single place of the export reference; packages are stored
+  normalized to the lower-left corner already. Corner reference needs only left/bottom edges for validity.
+- V3: DB_PatternData (old coefficient model: Rot 1 = KL along Y, Dark, kx*/ky* = package corner, km* = Align
+  shift), FC_LayerCalc centres the layer in the net area (TX/TY), ranks itself (dark first, back->front,
+  against approach sx), all 10 stands Align 0, Gap 0, pallet PB 800 (X) x PL 1200 (Y). MFC sends pattern
+  names 'EU01'..'EU96'. Checked: V3 ranks without the dark rule are identical for all 18 patterns, both sx,
+  6 sizes (dark packages always lie at the back).
+- Template: Smartsheet scope-of-work layout, Century Gothic, H1 caps 14 pt #595959, H2 caps 12 pt #44546A,
+  table head #222A35/#323E4F, cells #D5DCE4/#EAEEF3, cover page, version history table, TOC, footer
+  "Seite X von Y", US Letter. Rendered via Word COM to scratch for inspection.
+
 ### 2026-11-19 – Public README, GPL-3.0, no local paths
 - README.md rewritten for the public repo: what the tool does, requirements, step-by-step setup (clone, venv,
   QtControlsPyRS from GitHub branch next, requirements.txt, run, tests), AUTOBUILD steps, layout, design rules.

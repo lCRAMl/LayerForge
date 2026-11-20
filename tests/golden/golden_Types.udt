@@ -8,11 +8,13 @@
 // ======================================================================
 // Import together with the DB source of the same export, types first.
 //
-// Package centre relative to the pattern centre (centre of the bounding box
-// over all package outer edges):
-//   RelativeCenterX = KxL*KL + KxB*KB + KxD*D
-//   RelativeCenterY = KyL*KL + KyB*KB + KyD*D
+// Package centre relative to the lower-left corner of the pattern outline
+// (bounding box over all package outer edges):
+//   X = KxL*KL + KxB*KB + KxD*D
+//   Y = KyL*KL + KyB*KB + KyD*D
 // KL = long side, KB = short side of the package, D = safety gap [mm].
+// The order of the packages within a pattern is NOT the placement order;
+// the PLC computes the placement order itself.
 // ======================================================================
 
 TYPE "UDT_LayerPackage"
@@ -31,8 +33,9 @@ END_TYPE
 TYPE "UDT_LayerPatternIndex"
 VERSION : 1.0
    STRUCT
+      Name : String[16];          // name the MFC sends for this pattern, '' = no pattern
       FirstPackageIndex : UInt;   // first element in the flat package array, 0 = no pattern
-      PackageCount : UInt;        // packages of this pattern, in placement sequence
+      PackageCount : UInt;        // packages of this pattern
    END_STRUCT;
 END_TYPE
 

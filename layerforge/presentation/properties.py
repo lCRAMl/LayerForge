@@ -10,8 +10,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget
 )
 from qt_controls_pyrs import (
-    CompactButton, CompactCheckBox, CompactGroupBox, CompactIntField, CompactRadioButton,
-    CompactResultGrid, HaloScrollBar
+    CompactButton, CompactCheckBox, CompactGroupBox, CompactIntField, CompactLineEdit,
+    CompactRadioButton, CompactResultGrid, HaloScrollBar
 )
 
 from layerforge.domain import operations as ops
@@ -19,7 +19,7 @@ from layerforge.domain.export_model import is_verified
 from layerforge.domain.fitting import applicable_hints, fit_to_pallet
 from layerforge.domain.geometry import Condition
 from layerforge.domain.linear import LinearForm
-from layerforge.domain.model import Dimensions
+from layerforge.domain.model import NAME_LENGTH, Dimensions
 from layerforge.domain.rational import real_literal
 from layerforge.presentation.editor.view import fmt_mm
 from layerforge.presentation.theme import ERROR, OK, WARNING
@@ -32,7 +32,7 @@ class PackageGrid(CompactResultGrid):
 
 
 DISPLAY_LABELS = (
-    ("pallet", "Pallet"), ("sequence", "Sequence numbers"), ("orientation", "BaseOrientation"),
+    ("pallet", "Pallet"), ("orientation", "BaseOrientation"),
     ("guides", "Snap guides"), ("centres", "Package centres"), ("bbox", "Bounding box"),
     ("overhang", "Overhang"),
 )
@@ -68,6 +68,17 @@ class PropertiesPanel(QScrollArea):
         self.change_id.clicked.connect(self.changeIdRequested)
         head.addWidget(self.change_id)
         column.addLayout(head)
+
+        naming = QHBoxLayout()
+        naming.addWidget(QLabel("Name"))
+        self.name = CompactLineEdit()
+        self.name.setMaxLength(NAME_LENGTH)
+        self.name.setPlaceholderText("as sent by the MFC, e.g. EU13")
+        self.name.setToolTip("The PLC selects the pattern by this name (MFC telegram).\n"
+                             f"Up to {NAME_LENGTH} characters: letters, digits, spaces and - _ . / + #")
+        self.name.editingFinished.connect(self._commit_name)
+        naming.addWidget(self.name, 1)
+        column.addLayout(naming)
 
         status = QHBoxLayout()
         self.state = QLabel()
@@ -140,7 +151,7 @@ class PropertiesPanel(QScrollArea):
 
         # --- selected package -----------------------------------------------
         self.package = PackageGrid("Selected package")
-        for key, label in (("seq", "Sequence"), ("orient", "BaseOrientation"), ("x", "X"),
+        for key, label in (("orient", "BaseOrientation"), ("x", "X"),
                            ("y", "Y"), ("xmm", "X [mm]"), ("ymm", "Y [mm]")):
             self.package.add_row(key, label)
         self.package.add_separator()
@@ -187,7 +198,8 @@ class PropertiesPanel(QScrollArea):
     def refresh(self) -> None:
         pattern = self.session.current_pattern()
         enabled = pattern is not None
-        for widget in (self.change_id, self.verify, self.swap, self.fit, *self.fields.values()):
+        for widget in (self.change_id, self.name, self.verify, self.swap, self.fit,
+                       *self.fields.values()):
             widget.setEnabled(enabled)
         if pattern is None or pattern.uid != self._fit_for:
             self.fit_menu.clear()
@@ -195,11 +207,14 @@ class PropertiesPanel(QScrollArea):
             self._fit_for = None
         if pattern is None:
             self.title.setText("No pattern")
+            self.name.setText("")
             self.state.setText("")
             self.issues.setText("")
             self.package.clear_values()
             return
         self.title.setText(f"Pattern {pattern.pattern_id}")
+        if not self.name.hasFocus() or self.name.text().strip() == pattern.name:
+            self.name.setText(pattern.name)
         report = self.session.report(pattern.uid)
         verified = is_verified(pattern)
         valid = report is not None and report.valid
@@ -245,8 +260,7 @@ class PropertiesPanel(QScrollArea):
         pkg = geo.pattern.packages[index]
         rx, ry = geo.relative[index]
         dims = geo.pattern.dims
-        self.package.setTitle(f"Package #{index + 1}")
-        self.package.set_value("seq", str(index + 1))
+        self.package.setTitle("Selected package")
         self.package.set_value("orient", f"{pkg.orientation}")
         self.package.set_value("x", rx.text("·"))
         self.package.set_value("y", ry.text("·"))
@@ -257,6 +271,18 @@ class PropertiesPanel(QScrollArea):
             self.package.set_value(key, real_literal(value))
 
     # ------------------------------------------------------------------ edits
+
+    def _commit_name(self) -> None:
+        pattern = self.session.current_pattern()
+        if pattern is None:
+            return
+        name = self.name.text().strip()
+        if name == pattern.name:
+            self.name.setText(name)
+            return
+        if not self.session.execute(f"Rename pattern {pattern.pattern_id}",
+                                    lambda p: ops.set_name(p, pattern.uid, name)):
+            self.name.setText(pattern.name)        # refused: the message is in the status bar
 
     def _commit_dimension(self, key: str) -> None:
         """A committed field (Enter, focus loss, arrows) is applied together with the others.

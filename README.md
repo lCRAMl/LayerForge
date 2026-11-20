@@ -7,16 +7,22 @@ patterns from PDF drawings, lets you check and correct them in a CAD-like 2D edi
 them as an Excel workbook and as source files for **Siemens TIA Portal V21**.
 
 The exported positions are **symbolic**, not fixed millimetres. Every case centre is stored as
-coefficients of the case length `KL`, the case width `KB` and the safety gap `D`:
+coefficients of the case length `KL`, the case width `KB` and the safety gap `D`, measured from
+the lower-left corner of the pattern outline:
 
 ```
-RelativeCenterX = KxL*KL + KxB*KB + KxD*D
-RelativeCenterY = KyL*KL + KyB*KB + KyD*D
+X = KxL*KL + KxB*KB + KxD*D
+Y = KyL*KL + KyB*KB + KyD*D
 ```
 
-So one pattern works for every case size: the PLC inserts the current `KL`, `KB` and `D` and
-gets the positions relative to the pallet centre. The coefficients are exact multiples of 1/16
-(0.25, -0.5, 1.0, ...), so they survive the trip into a `REAL` without rounding errors.
+So one pattern works for every case size: the PLC inserts the current `KL`, `KB` and `D`, gets the
+positions within the layer and centres the layer on the pallet. The coefficients are exact
+multiples of 1/16 (0.5, -0.5, 1.0, ...), so they survive the trip into a `REAL` without rounding
+errors. Each pattern has a **name** (for example `EU13`); the PLC looks the pattern up by the name
+its host system sends.
+
+LayerForge deliberately defines **no placement order**. The right order depends on where the pallet
+stands relative to the pickup point, so the PLC computes it.
 
 Windows 10/11 desktop application, Python + PyQt6.
 
@@ -29,9 +35,9 @@ Windows 10/11 desktop application, Python + PyQt6.
 - **Fit to pallet.** Suggests "round" values for `KL` and `KB` (such as 320 x 240) with which
   the pattern fits the pallet best. The arrangement stays as drawn: flush edges stay flush.
 - **Edit.** A 2D editor with snapping (adjacent plus `D`, flush edges, centred), rotation,
-  placement sequence, undo/redo, and a symbolic and a numeric view.
+  undo/redo, and a symbolic and a numeric view.
 - **Validate and verify.** Overlaps, gaps smaller than `D`, cases not touching the rest, duplicate
-  and mirrored patterns. Each pattern also shows the conditions under which its coefficients are
+  and mirrored patterns, missing or duplicate names. Each pattern also shows the conditions under which its coefficients are
   valid (for example `2*KB + D >= KL`). Only patterns you have verified can be exported.
 - **Export.**
   - `<prefix>_Patterns.xlsx`: one sheet with a row per pattern, one with a row per case.
@@ -170,7 +176,7 @@ layerforge/
   domain/          pure Python: no Qt, OpenCV, PDF, openpyxl, Jinja2 (enforced by tests/test_architecture.py)
     rational.py    coefficient policy: power-of-two denominators <= 16, exact REAL literals
     linear.py      LinearForm l*KL + b*KB + d*D with Fractions
-    model.py       immutable Package, Pattern, Project (package order = placement sequence)
+    model.py       immutable Package, Pattern, Project (package order has no meaning)
     geometry.py    exact evaluation in 1/16 mm, overlap/clearance/neighbours, symbolic bounding box,
                    validity conditions
     snapping.py    relation catalogue (adjacent + D, flush, centred, half step) and resolution
@@ -197,7 +203,7 @@ doc/DESIGN.md      design decisions
   `ProjectSession.execute()`; undo swaps whole snapshots. Views detect changes by object identity.
 - **Exact geometry.** Positions are `LinearForm`s; millimetres appear only when evaluating for the
   example values. Never store floats in the model.
-- **Verification = fingerprint** of the exported data (PatternId, sequence, orientation,
+- **Verification = fingerprint** of the exported data (PatternId, name, orientation,
   coefficients). Geometry edits clear it; example-value edits keep it unless they change the export.
 - **Background work** goes through `presentation/workers.py`; tasks must not touch widgets.
   Each channel has a generation counter, so stale results are dropped.

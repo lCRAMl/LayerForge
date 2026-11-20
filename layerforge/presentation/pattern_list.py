@@ -1,4 +1,4 @@
-"""Pattern list: PatternId, verified state, package count, duplicate/similar badge and a
+"""Pattern list: PatternId, name, verified state, package count, duplicate/similar badge and a
 small preview; a larger preview pops up on hover. Manual order by drag and drop, or a
 temporary view sorted by PatternId."""
 
@@ -66,7 +66,7 @@ class _Delegate(QStyledItemDelegate):
         painter.setPen(ink)
         painter.drawText(QRect(text_x, rect.top() + 8, rect.width(), 20),
                          int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter),
-                         f"Pattern {pattern.pattern_id}")
+                         f"Pattern {pattern.pattern_id}" + (f"  ·  {pattern.name}" if pattern.name else ""))
         painter.setFont(option.font)
         dim = QColor(ink)
         dim.setAlpha(150)
@@ -104,6 +104,10 @@ class _Delegate(QStyledItemDelegate):
             return "DUPLICATE", ERROR
         if report.has(v.DUPLICATE_ID):
             return "ID TWICE", ERROR
+        if report.has(v.DUPLICATE_NAME):
+            return "NAME TWICE", ERROR
+        if report.has(v.NAME_MISSING):
+            return "NO NAME", ERROR
         if not report.valid:
             return "INVALID", ERROR
         if report.has(v.MIRROR_SIMILAR):
