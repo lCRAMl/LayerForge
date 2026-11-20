@@ -1,8 +1,8 @@
 {% include "header.j2" %}
 // Requires the types "{{ names.package_type }}" and "{{ names.index_type }}".
 //
-// PatternIndex[PatternId] -> Name, FirstPackageIndex, PackageCount
-// ('' / 0 / 0 = no pattern). The MFC selects a pattern by its Name.
+// PatternIndex[PatternId] -> PatternName, FirstPackageIndex, PackageCount
+// ('' / 0 / 0 = no pattern). The MFC selects a pattern by its PatternName.
 // Packages of a pattern: Package[FirstPackageIndex .. FirstPackageIndex + PackageCount - 1]
 // in no particular order - the PLC computes the placement order itself.
 // The flat package array is compacted on every export: never store a global
@@ -19,7 +19,7 @@ NON_RETAIN
 
 BEGIN
 {% for row in snapshot.patterns %}
-   PatternIndex[{{ row.pattern_id }}].Name := '{{ row.name }}'; PatternIndex[{{ row.pattern_id }}].FirstPackageIndex := {{ row.first_index }}; PatternIndex[{{ row.pattern_id }}].PackageCount := {{ row.count }};
+   PatternIndex[{{ row.pattern_id }}].PatternName := '{{ row.name }}'; PatternIndex[{{ row.pattern_id }}].FirstPackageIndex := {{ row.first_index }}; PatternIndex[{{ row.pattern_id }}].PackageCount := {{ row.count }};
 {% endfor %}
 {% for p in snapshot.packages %}
 {% if p.position == 1 %}

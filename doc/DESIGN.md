@@ -379,7 +379,7 @@ library work comes first because the shell depends on it.
     and bottom edges; the PLC computes the outline (and centres the layer on the pallet) itself. Positions
     are never negative, single coefficients can be (EU13: Y = -0.5*KL + 2*KB + D).
   - Every pattern has a name (required, unique ignoring case, <= 16 characters, letters, digits, space and
-    `- _ . / + #`), exported as `PatternIndex[].Name : String[16]`. The MFC sends the name, the PLC searches
+    `- _ . / + #`), exported as `PatternIndex[].PatternName : String[16]` (not `Name`: NAME is an SCL block attribute keyword). The MFC sends the name, the PLC searches
     it. The name is part of the fingerprint; renaming drops verification.
   - The placement order is computed by the PLC (it depends on where the pallet stands relative to the pickup
     point). The editor shows no package numbers, the sequence panel, Auto Order and Click Order are gone,

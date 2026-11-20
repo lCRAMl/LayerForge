@@ -26,7 +26,7 @@ END_TYPE
 TYPE "{{ names.index_type }}"
 VERSION : {{ block_version }}
    STRUCT
-      Name : String[{{ name_length }}];          // name the MFC sends for this pattern, '' = no pattern
+      PatternName : String[{{ name_length }}];   // name the MFC sends for this pattern, '' = no pattern
       FirstPackageIndex : UInt;   // first element in the flat package array, 0 = no pattern
       PackageCount : UInt;        // packages of this pattern
    END_STRUCT;

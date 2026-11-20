@@ -153,7 +153,7 @@ def test_db_import_rejects_foreign_files():
     with pytest.raises(tia_import.DbImportError, match="version"):
         tia_import.parse(db.replace("LayerPattern-TIA 1", "LayerPattern-TIA 2"))
     # A DB of an earlier LayerForge (no names, centre reference) is refused.
-    nameless = "\n".join(line.replace("PatternIndex[3].Name := 'EU13'; ", "") for line in db.splitlines())
+    nameless = "\n".join(line.replace("PatternIndex[3].PatternName := 'EU13'; ", "") for line in db.splitlines())
     with pytest.raises(tia_import.DbImportError, match="no name"):
         tia_import.parse(nameless)
     broken = db.replace("Package[5].KyD := ", "Package[5].Kxx := ")

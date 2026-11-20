@@ -269,6 +269,7 @@ def test_tia_name_rules():
     assert TiaNames().problems() == []
     assert TiaNames(db="1abc").problems()
     assert TiaNames(db="BEGIN").problems()
+    assert TiaNames(db="Name").problems()          # SCL block attribute keyword
     assert TiaNames(db="UDT_LayerPackage").problems()
 
 

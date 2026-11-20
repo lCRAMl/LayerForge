@@ -8,8 +8,8 @@
 // ======================================================================
 // Requires the types "UDT_LayerPackage" and "UDT_LayerPatternIndex".
 //
-// PatternIndex[PatternId] -> Name, FirstPackageIndex, PackageCount
-// ('' / 0 / 0 = no pattern). The MFC selects a pattern by its Name.
+// PatternIndex[PatternId] -> PatternName, FirstPackageIndex, PackageCount
+// ('' / 0 / 0 = no pattern). The MFC selects a pattern by its PatternName.
 // Packages of a pattern: Package[FirstPackageIndex .. FirstPackageIndex + PackageCount - 1]
 // in no particular order - the PLC computes the placement order itself.
 // The flat package array is compacted on every export: never store a global
@@ -25,9 +25,9 @@ NON_RETAIN
    END_VAR
 
 BEGIN
-   PatternIndex[1].Name := 'SINGLE'; PatternIndex[1].FirstPackageIndex := 1; PatternIndex[1].PackageCount := 1;
-   PatternIndex[3].Name := 'EU13'; PatternIndex[3].FirstPackageIndex := 2; PatternIndex[3].PackageCount := 3;
-   PatternIndex[7].Name := 'BRICK 7'; PatternIndex[7].FirstPackageIndex := 5; PatternIndex[7].PackageCount := 2;
+   PatternIndex[1].PatternName := 'SINGLE'; PatternIndex[1].FirstPackageIndex := 1; PatternIndex[1].PackageCount := 1;
+   PatternIndex[3].PatternName := 'EU13'; PatternIndex[3].FirstPackageIndex := 2; PatternIndex[3].PackageCount := 3;
+   PatternIndex[7].PatternName := 'BRICK 7'; PatternIndex[7].FirstPackageIndex := 5; PatternIndex[7].PackageCount := 2;
    // PatternId 1
    Package[1].BaseOrientation := 0; Package[1].KxL := 0.5; Package[1].KxB := 0.0; Package[1].KxD := 0.0; Package[1].KyL := 0.0; Package[1].KyB := 0.5; Package[1].KyD := 0.0;
    // PatternId 3

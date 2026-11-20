@@ -28,7 +28,8 @@ _PATTERN_NAME = re.compile(rf"^[{_NAME_CHARS}](?:[{_NAME_CHARS} ]*[{_NAME_CHARS}
 # Words that must not be used as TIA identifiers. Not exhaustive; it catches the
 # names someone might plausibly type into the options dialog.
 _RESERVED = {
-    "ARRAY", "BEGIN", "BOOL", "BY", "CASE", "CONST", "DATA_BLOCK", "DINT", "DO", "ELSE",
+    "ARRAY", "AUTHOR", "BEGIN", "BOOL", "BY", "CASE", "CONST", "DATA_BLOCK", "DINT", "DO", "ELSE",
+    "FAMILY", "NAME", "OK", "TITLE",
     "END_DATA_BLOCK", "END_STRUCT", "END_TYPE", "END_VAR", "FALSE", "FOR", "FUNCTION",
     "FUNCTION_BLOCK", "IF", "INT", "NON_RETAIN", "OF", "REAL", "RETAIN", "STRUCT", "THEN",
     "TO", "TRUE", "TYPE", "UINT", "USINT", "VAR", "VERSION", "WHILE",

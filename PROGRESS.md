@@ -64,6 +64,34 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 
 ## Log
 
+### 2026-11-20 – V4 PLC project: sources, Python check chain done ("ALLE PRUEFUNGEN OK")
+- LayerForge: UDT field renamed Name -> PatternName (NAME is an SCL block attribute keyword and on the V3
+  reserved list); NAME/OK/TITLE/AUTHOR/FAMILY added to the TiaNames reserved set; goldens regenerated,
+  160 tests green. Not committed yet (commit 0c2c920 is local only, nothing pushed).
+- Build v1.0.0-7-g0c2c920 done before the rename (EXE self-test OK) - must be rebuilt after committing.
+- ../V4 created as a copy of V3 (V3 untouched), V3-only files removed. tools/dev_export_from_v3.py builds
+  the 18 V3 patterns with LayerForge code (names EU.., PatternId = EU number, verified by script) and
+  exports tia/02_LayerForge_{Types.udt,Patterns.db,Patterns.xlsx} - temporary until the user's own export.
+- SCL rewritten: 01 types (StandCfg with PB/PL/ZPal/Gap; GantryCfg with StopRight, KLAcross, MaxOverhang,
+  LabelCheck, ScanAIsPlus, VarTravel, ZClear, ZTravelMin; LayerPos with Xp/Yp/Wg/Hg/Dist/Rank/App*;
+  CoordCache Pos[1..64] = the single max-packages bound; Zt in result/log/diff), 03 DB_GantryCfg with
+  Stand[1..10] next to Cfg, 08 FC_LayerCalc (corner coefficients, outline, overhang, centring, outside
+  side, rank by pickup distance, in-place cycle sort with duplicate detection 8202, approach per package
+  with sweep-box fallback), 09 FC_PackageWP (approach vector, travel height fixed/variable, C for KL across
+  the band), 10 name lookup over Array[*], 11 FC_CoordinateCalc (StandCfg[*], pickup point, StackTop),
+  12 FC_StandSelect (Array[*]), 13 FB_StandManager (8404 size check, highest-stack region), 14/15/16 test
+  bench (Zt column, pallet change only for the completed stand, Calc.StackTop).
+- Python: lfdb.py (reads the LayerForge DB), ref_v4.py (independent reference), sim_v4.py (V3 telegrams),
+  expect_v4.py, scl_port_v4.py (cycle-accurate, 32-bit Real), gen_v4.py (06/07 DBs, Excel, 7 watch lists,
+  CRLF), test_v4.py. lint_scl.py: only .udt/.db/.scl, UInt/USInt known.
+- Results: test bench 80 rows, 77/1/2/11 like V3 (decisions identical, coordinates new), port = reference
+  (max 0.00025 mm in 32 bit), Rechner 77/77, settings (fixed ZMax, stop right, KL across, no LabelCheck,
+  8404), 200 random plants x 120 telegrams in 32 and 64 bit: 0 deviations; lint 0 findings.
+- Test data: approach on the line 72, only Y 4, only X 1; variable travel height 1000-1144 mm (ZTravelMin
+  start value lowered to 900 so the variable part is exercised).
+- Next: V4 docs (Einstiegsdoku in template look via md2docx, chapters settings / MFC interface / travel
+  height / guide for the LayerForge export), CHANGELOG, CLAUDE.md; LayerForge commit + rebuild + push.
+
 ### 2026-11-20 – LayerForge step done (160 tests green, source self-test OK)
 - Corner reference: geometry.corner_relative() for the export, centre_relative() only for duplicates and
   mirror detection; validity conditions left/bottom only; package_rows() uses the automatic order.

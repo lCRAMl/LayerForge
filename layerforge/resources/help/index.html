@@ -303,8 +303,8 @@ the six coefficients and the readable X/Y formulas. Sorted by PatternId, inside 
 <h3>TIA Portal V21: <code>&lt;prefix&gt;_Types.udt</code> and <code>&lt;prefix&gt;_Patterns.db</code></h3>
 <p>Always both together. Import them as external sources, <b>types first</b>, then
 <i>Generate blocks from source</i>. Plain ASCII, generated header with tool, format version and date.</p>
-<p><code>PatternIndex[1..99]</code>: entry = PatternId with <i>Name</i>, <i>FirstPackageIndex</i> and
-<i>PackageCount</i>; <code>''/0/0</code> = no pattern. The PLC finds the pattern by the name the MFC sends.
+<p><code>PatternIndex[1..99]</code>: entry = PatternId with <i>PatternName</i>, <i>FirstPackageIndex</i> and
+<i>PackageCount</i>; <code>''/0/0</code> = no pattern. The PLC finds the pattern by the name the MFC sends (<i>PatternName</i>).
 <code>Package[1..n]</code>: all packages, by PatternId. The packages of a pattern are
 <code>Package[FirstPackageIndex .. FirstPackageIndex + PackageCount - 1]</code>, in no particular order.
 <b>Global package indices are not stable</b> - deleting or adding a pattern compacts the array. PLC logic must
@@ -365,7 +365,7 @@ over all package edges. The pallet is centred under the pattern, as the PLC plac
 on the pallet)</td></tr>
 <tr><td><b>Coefficients</b></td><td>Exact multiples of 1/16 (0.5, -0.5, 1.0 ...), so they are exact as REAL. The positions
 are never negative, a single coefficient can be (e.g. <code>Y = -0.5*KL + 2*KB + D</code>).</td></tr>
-<tr><td><b>Name</b></td><td>The key between MFC and PLC: the MFC sends it, the PLC searches <code>PatternIndex[].Name</code>.
+<tr><td><b>Name</b></td><td>The key between MFC and PLC: the MFC sends it, the PLC searches <code>PatternIndex[].PatternName</code>.
 The PatternId is only the slot in the DB.</td></tr>
 <tr><td><b>Limits</b></td><td>A pattern is checked for the example values entered in the tool, not for every case size.
 Before the PLC uses other sizes, check them in the tool (and mind <i>Coefficients valid while</i>).</td></tr>

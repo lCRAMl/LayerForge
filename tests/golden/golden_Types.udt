@@ -33,7 +33,7 @@ END_TYPE
 TYPE "UDT_LayerPatternIndex"
 VERSION : 1.0
    STRUCT
-      Name : String[16];          // name the MFC sends for this pattern, '' = no pattern
+      PatternName : String[16];   // name the MFC sends for this pattern, '' = no pattern
       FirstPackageIndex : UInt;   // first element in the flat package array, 0 = no pattern
       PackageCount : UInt;        // packages of this pattern
    END_STRUCT;

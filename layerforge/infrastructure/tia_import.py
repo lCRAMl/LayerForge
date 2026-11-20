@@ -19,7 +19,7 @@ _FORMAT = re.compile(r"^//\s*Format\s*:\s*" + re.escape(FORMAT_NAME) + r"\s+(\d+
 _PROJECT = re.compile(r"^//\s*Project\s*:\s*(.*?)\s*$", re.M)
 _DB = re.compile(r'^DATA_BLOCK\s+"([^"]+)"', re.M)
 _INDEX = re.compile(r"PatternIndex\[(\d+)\]\.(FirstPackageIndex|PackageCount)\s*:=\s*(\d+)\s*;")
-_NAME = re.compile(r"PatternIndex\[(\d+)\]\.Name\s*:=\s*'([^']*)'\s*;")
+_NAME = re.compile(r"PatternIndex\[(\d+)\]\.PatternName\s*:=\s*'([^']*)'\s*;")
 _PACKAGE = re.compile(r"Package\[(\d+)\]\.(BaseOrientation|KxL|KxB|KxD|KyL|KyB|KyD)"
                       r"\s*:=\s*([-+0-9.eE]+)\s*;")
 _FIELDS = ("BaseOrientation", "KxL", "KxB", "KxD", "KyL", "KyB", "KyD")
