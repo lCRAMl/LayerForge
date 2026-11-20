@@ -64,6 +64,20 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 
 ## Log
 
+### 2026-11-20 – V4 documentation done; LayerForge pushed
+- ../V4/doc: Einstiegsdoku rewritten for V4 (21 chapters; new: patterns from LayerForge, settings with
+  must/can and start values, travel height in detail, MFC interface with field table, signals and nine
+  example telegrams checked against the reference), short guide "Anleitung Musterdaten mit LayerForge"
+  (palette 800 x 1200 = PB x PL, names, verify, export prefix 02_LayerForge, then gen_v4/test_v4).
+- tools/md2docx.py restyled after the Word template (Century Gothic, cover with project name, ID,
+  version, date, title and version history; TOC filled via Word COM when available, otherwise
+  updateFields; caps headings #595959/#44546A; tables with #323E4F head and #EAEEF3 bands; footer
+  "Seite X von Y"; A4). No company fields, logo, disclaimer or prepared/approved table (H13).
+  Rendered and checked: 39 pages.
+- ../V4/CHANGELOG.md and CLAUDE.md rewritten for V4.
+- LayerForge build v1.0.0-8-g63d3f9f: EXE self-test OK; AUTOBUILD reported "No Start tile yet" this time
+  (the previous build had found it) - told the user.
+
 ### 2026-11-20 – V4 PLC project: sources, Python check chain done ("ALLE PRUEFUNGEN OK")
 - LayerForge: UDT field renamed Name -> PatternName (NAME is an SCL block attribute keyword and on the V3
   reserved list); NAME/OK/TITLE/AUTHOR/FAMILY added to the TiaNames reserved set; goldens regenerated,
