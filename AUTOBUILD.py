@@ -247,6 +247,10 @@ def clean() -> None:
 # =========================
 
 def main() -> int:
+    # All paths above, git and PyInstaller work relative to the project folder, so the
+    # build must not depend on where it was started from (e.g. a VS Code workspace one
+    # level up, where "layerforge/..." would even resolve case-insensitively to this folder).
+    os.chdir(Path(__file__).resolve().parent)
     print("🔧 Build started...")
     version = get_git_version()
     build_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

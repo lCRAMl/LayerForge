@@ -64,6 +64,17 @@ Status legend: OPEN = asked, waiting for the user; OK = approved; CHANGED = user
 
 ## Log
 
+### 2026-11-21 – AUTOBUILD independent of the working directory
+- User's build failed ("not a git repository", "run.py does not exist", icon path ...\LayerForge\resources):
+  it was started from the parent folder (VS Code workspace). All AUTOBUILD paths and git calls are relative
+  to the cwd, and on the case-insensitive share "layerforge/resources" resolved to the LayerForge folder.
+- Fix: main() starts with os.chdir(Path(__file__).resolve().parent). Stray build_version.py removed from the
+  parent folder. Verified by building from the parent folder: v1.0.0-9-gd3bf18e, EXE self-test passed.
+- Same line added to the AUTOBUILD scripts of APIImageGenerator and LeechForum (both verified by a real
+  build from a foreign folder). PicPromptEditor and TRXing needed nothing: they anchor every path to
+  ROOT and run git and PyInstaller with cwd=ROOT.
+- AUTOBUILD again reports "No Start tile yet": the user has to pin LayerForge once.
+
 ### 2026-11-20 – V4 documentation done; LayerForge pushed
 - ../V4/doc: Einstiegsdoku rewritten for V4 (21 chapters; new: patterns from LayerForge, settings with
   must/can and start values, travel height in detail, MFC interface with field table, signals and nine
